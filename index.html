@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Shinobi</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; touch-action: none; }
+#game-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+<script>
+// ============================================================
+// SHINOBI — Web Game (Phaser 3)
+// Classic arcade ninja action game
+// ============================================================
+
+// --- Constants ---
+const GAME_W = 800;
+const GAME_H = 450;
+const GROUND_Y = GAME_H - 48;
+const GRAVITY = 900;
+const PLAYER_SPEED = 200;
+const PLAYER_JUMP = -420;
+const ATTACK_RANGE = 60;
+const ATTACK_COOLDOWN = 300;
+const MISSION_TIME = 300; // seconds
+const ENEMY_TYPES = {
+  ninja_runner:    { speed: 120, hp: 1, score: 100, color: 0x8B0000, w: 28, h: 40 },
+  shuriken:        { speed: 80,  hp: 1, score: 200, color: 0x4B0082, w: 24, h: 36 },
+  samurai:         { speed: 60,  hp: 3, score: 500, color: 0x555555, w: 32, h: 44 },
+  jumper:          { speed: 100, hp: 1, score: 150, color: 0x006400, w: 26, h: 38 },
+  boss_minion:     { speed: 90,  hp: 2, score: 300, color: 0x8B4513, w: 30, h: 42 },
+  mini_boss:       { speed: 40,  hp: 10, score: 2000, color: 0xFF0000, w: 48, h: 56 },
+  final_boss:      { speed: 30,  hp: 20, score: 5000, color: 0xFFD700, w: 56, h: 64 },
+};
+
+// Parallax layer colors (Shinobi 1987 arcade Stage 1 — urban night)
+const BG_LAYERS = [
+  { color: 0x1A1A3D, speedMult: 0.05, y: 0,   h: GAME_H },       // dark blue night sky
+  { color: 0x2A2A5D, speedMult: 0.15, y: 60,  h: 140 },          // distant city silhouette
+  { color: 0x8B7766, speedMult: 0.30, y: 140, h: 100 },          // mid-range buildings (tan/brown)
+  { color: 0x447766, speedMult: 0.50, y: 200, h: 60 },           // teal fence/railing
+  { color: 0x6B5544, speedMult: 0.75, y: 240, h: 120 },          // stone walkway facades
+  { color: 0x888888, speedMult: 0.90, y: 360, h: 40 },           // concrete ground detail
+];
+const GROUND_COLOR = 0x777777;  // gray concrete/stone (arcade)
+
+// Spawn timeline (simplified from music_timeline.json - key waves)
+const SPAWN_TIMELINE = [
+  { t: 3,   type: 'ninja_runner', count: 1 },
+  { t: 6,   type: 'ninja_runner', count: 1 },
+  { t: 9,   type: 'shuriken',     count: 1 },
+  { t: 12,  type: 'ninja_runner', count: 2 },
+  { t: 16,  type: 'jumper',       count: 1 },
+  { t: 20,  type: 'ninja_runner', count: 3 },
+  { t: 25,  type: 'shuriken',     count: 1 },
+  { t: 28,  type: 'samurai',      count: 1 },
+  { t: 32,  type: 'ninja_runner', count: 2 },
+  { t: 36,  type: 'jumper',       count: 2 },
+  { t: 40,  type: 'ninja_runner', count: 4 },
+  { t: 45,  type: 'samurai',      count: 1 },
+  { t: 48,  type: 'shuriken',     count: 2 },
+  { t: 52,  type: 'ninja_runner', count: 3 },
+  { t: 56,  type: 'jumper',       count: 1 },
+  { t: 60,  type: 'mini_boss',    count: 1 },
+  { t: 62,  type: 'ninja_runner', count: 3 },
+  { t: 68,  type: 'samurai',      count: 2 },
+  { t: 72,  type: 'ninja_runner', count: 2 },
+  { t: 78,  type: 'shuriken',     count: 2 },
+  { t: 82,  type: 'jumper',       count: 2 },
+  { t: 86,  type: 'ninja_runner', count: 5 },
+  { t: 92,  type: 'samurai',      count: 1 },
+  { t: 95,  type: 'boss_minion',  count: 2 },
+  { t: 100, type: 'final_boss',   count: 1 },
+  { t: 105, type: 'ninja_runner', count: 3 },
+  { t: 112, type: 'samurai',      count: 2 },
+  { t: 120, type: 'ninja_runner', count: 4 },
+];
+
+// ============================================================
+// BOOT SCENE — generate textures
+// ============================================================
+class BootScene extends Phaser.Scene {
+  constructor() { super('Boot'); }
+
+  create() {
+    this.generateTextures();
+    this.scene.start('Game');
+  }
+
+  generateTextures() {
+    // --- PLAYER: Joe Musashi ninja (28x44, 16-bit pixel art) ---
+    this.drawPixelArt('player', 28, 44, this.playerPixels());
+    this.drawPixelArt('player_attack', 40, 44, this.playerAttackPixels());
+
+    // --- HOSTAGE: tied-up civilian ---
+    this.drawPixelArt('hostage', 20, 36, this.hostagePixels());
+
+    // --- ENEMIES ---
+    this.drawPixelArt('enemy_ninja_runner', 28, 40, this.ninjaRunnerPixels());
+    this.drawPixelArt('enemy_shuriken', 24, 36, this.shurikenThrowerPixels());
+    this.drawPixelArt('enemy_samurai', 32, 44, this.samuraiPixels());
+    this.drawPixelArt('enemy_jumper', 26, 38, this.jumperPixels());
+    this.drawPixelArt('enemy_boss_minion', 30, 42, this.bossMinionPixels());
+    this.drawPixelArt('enemy_mini_boss', 48, 56, this.miniBossPixels());
+    this.drawPixelArt('enemy_final_boss', 56, 64, this.finalBossPixels());
+
+    // --- PROJECTILE: spinning shuriken star ---
+    this.drawPixelArt('shuriken_proj', 10, 10, this.shurikenProjPixels());
+
+    // --- HIT EFFECT ---
+    this.drawHitEffect();
+
+    // --- HUD ICONS ---
+    this.drawPixelArt('hostage_icon', 12, 16, this.hostageIconPixels());
+    this.drawPixelArt('hostage_icon_empty', 12, 16, this.hostageIconEmptyPixels());
+
+    // --- GROUND TILE ---
+    this.drawGroundTile();
+
+    // --- PLATFORM TILE ---
+    this.drawPlatformTile();
+
+    // --- TOUCH CONTROLS ---
+    this.makeCircle('dpad_base', 60, 0x333333, 0.4);
+    this.makeCircle('dpad_knob', 24, 0x888888, 0.7);
+    this.drawTouchButton('btn_attack', 28, 0xCC3333, 'A');
+    this.drawTouchButton('btn_jump', 28, 0x3333CC, 'J');
+  }
+
+  // === PIXEL ART RENDERER ===
+  drawPixelArt(key, w, h, pixelData) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    for (const px of pixelData) {
+      ctx.fillStyle = px.c;
+      ctx.fillRect(px.x, px.y, px.w || 1, px.h || 1);
+    }
+
+    this.textures.addCanvas(key, canvas);
+  }
+
+  // Helper: fill a rectangle area with pixels
+  pxRect(x, y, w, h, color) {
+    const pixels = [];
+    for (let py = y; py < y + h; py++) {
+      for (let px = x; px < x + w; px++) {
+        pixels.push({ x: px, y: py, c: color });
+      }
+    }
+    return pixels;
+  }
+
+  // === PLAYER SPRITE: Joe Musashi (1987 Arcade — white ninja suit) ===
+  playerPixels() {
+    const p = [];
+    const skin = '#E8C090';
+    const suit = '#E8E0D0';       // white/cream ninja suit (arcade original)
+    const suitDk = '#C8C0B0';     // suit shadow
+    const suitLt = '#F5F0E8';     // suit highlight
+    const belt = '#CC2222';       // red belt/sash
+    const hair = '#222222';
+    const eye = '#FFFFFF';
+    const headband = '#CC2222';   // red headband
+    const boot = '#8B4513';       // brown tabi boots
+    const outline = '#111111';
+
+    // Head (centered at x=10..18, y=0..10)
+    p.push(...this.pxRect(11, 0, 6, 2, hair));       // hair top
+    p.push(...this.pxRect(10, 2, 8, 2, hair));       // hair
+    p.push(...this.pxRect(10, 4, 8, 1, headband));   // red headband
+    p.push(...this.pxRect(10, 5, 8, 5, skin));       // face
+    p.push(...this.pxRect(12, 6, 2, 1, eye));        // left eye
+    p.push(...this.pxRect(16, 6, 2, 1, eye));        // right eye
+    p.push(...this.pxRect(12, 6, 1, 1, '#333'));      // pupil L
+    p.push(...this.pxRect(16, 6, 1, 1, '#333'));      // pupil R
+    p.push(...this.pxRect(13, 8, 2, 1, skin));       // mouth area
+    // White mask/scarf
+    p.push(...this.pxRect(10, 9, 8, 2, suitDk));
+
+    // Torso (x=8..20, y=11..24)
+    p.push(...this.pxRect(9, 11, 10, 2, suit));       // shoulders
+    p.push(...this.pxRect(8, 13, 12, 6, suit));       // chest
+    p.push(...this.pxRect(10, 13, 8, 6, suitLt));     // chest highlight
+    p.push(...this.pxRect(8, 19, 12, 2, belt));       // red belt/sash
+    p.push(...this.pxRect(8, 21, 12, 4, suit));       // waist
+
+    // Arms (white sleeves)
+    p.push(...this.pxRect(5, 12, 3, 8, suit));        // left arm
+    p.push(...this.pxRect(5, 20, 3, 2, skin));        // left hand
+    p.push(...this.pxRect(20, 12, 3, 8, suit));       // right arm
+    p.push(...this.pxRect(20, 20, 3, 2, skin));       // right hand
+
+    // Legs (y=25..38) — white pants
+    p.push(...this.pxRect(9, 25, 4, 8, suitDk));      // left leg
+    p.push(...this.pxRect(15, 25, 4, 8, suitDk));     // right leg
+    p.push(...this.pxRect(10, 25, 2, 8, suit));       // left leg highlight
+    p.push(...this.pxRect(16, 25, 2, 8, suit));       // right leg highlight
+
+    // Tabi boots (brown, y=33..38)
+    p.push(...this.pxRect(8, 33, 5, 4, boot));        // left boot
+    p.push(...this.pxRect(15, 33, 5, 4, boot));       // right boot
+    p.push(...this.pxRect(8, 36, 6, 2, '#6B3A10'));    // left sole
+    p.push(...this.pxRect(14, 36, 6, 2, '#6B3A10'));   // right sole
+
+    return p;
+  }
+
+  playerAttackPixels() {
+    const p = this.playerPixels();
+    const sword = '#DDEEFF';      // bluish steel blade
+    const swordHilt = '#8B4513';
+    const swordFlash = '#FFFFFF';
+    // Katana extending right (upgraded weapon from arcade)
+    p.push(...this.pxRect(23, 14, 2, 2, swordHilt));  // hilt
+    p.push(...this.pxRect(25, 12, 12, 2, sword));     // blade
+    p.push(...this.pxRect(25, 14, 12, 1, '#BBCCDD')); // blade shadow
+    p.push(...this.pxRect(36, 11, 3, 2, swordFlash)); // tip flash
+    return p;
+  }
+
+  // === HOSTAGE (arcade — kidnapped child/civilian) ===
+  hostagePixels() {
+    const p = [];
+    const skin = '#E8C090';
+    const dress = '#DD5599';      // pink dress (as seen in arcade video)
+    const dressLt = '#EE77BB';
+    const hair = '#AA6633';
+    const rope = '#AA8833';
+
+    // Head
+    p.push(...this.pxRect(6, 0, 8, 3, hair));
+    p.push(...this.pxRect(5, 1, 1, 3, hair));     // side hair L
+    p.push(...this.pxRect(14, 1, 1, 3, hair));    // side hair R
+    p.push(...this.pxRect(6, 3, 8, 5, skin));
+    p.push(...this.pxRect(8, 4, 1, 1, '#333'));    // eye L
+    p.push(...this.pxRect(11, 4, 1, 1, '#333'));   // eye R
+    p.push(...this.pxRect(9, 6, 2, 1, '#CC6666')); // mouth (worried)
+    // Body (pink dress)
+    p.push(...this.pxRect(5, 8, 10, 10, dress));
+    p.push(...this.pxRect(6, 9, 8, 8, dressLt));
+    // Rope tied around
+    p.push(...this.pxRect(4, 10, 12, 1, rope));
+    p.push(...this.pxRect(4, 14, 12, 1, rope));
+    p.push(...this.pxRect(4, 12, 1, 2, rope));
+    p.push(...this.pxRect(15, 12, 1, 2, rope));
+    // Legs
+    p.push(...this.pxRect(6, 18, 3, 8, skin));    // bare legs
+    p.push(...this.pxRect(11, 18, 3, 8, skin));
+    // Shoes
+    p.push(...this.pxRect(5, 26, 4, 2, '#CC3366'));
+    p.push(...this.pxRect(11, 26, 4, 2, '#CC3366'));
+
+    return p;
+  }
+
+  // === ENEMIES (1987 Arcade Zeed Drones) ===
+  // Mohawk Punk — shirtless muscular thug (Stage 1 basic enemy)
+  ninjaRunnerPixels() {
+    const p = [];
+    const skin = '#D4A070';
+    const skinDk = '#B88050';
+    const skinLt = '#E8D0A0';
+    const pants = '#4444AA';      // blue/dark pants
+    const pantsDk = '#333388';
+    const mohawk = '#CC2222';     // red mohawk
+    // Mohawk hair
+    p.push(...this.pxRect(12, 0, 4, 2, mohawk));
+    p.push(...this.pxRect(11, 2, 6, 1, mohawk));
+    // Head (bare face)
+    p.push(...this.pxRect(9, 3, 10, 6, skin));
+    p.push(...this.pxRect(10, 3, 8, 5, skinLt));
+    p.push(...this.pxRect(11, 5, 2, 1, '#222'));     // eyes
+    p.push(...this.pxRect(16, 5, 2, 1, '#222'));
+    p.push(...this.pxRect(13, 7, 2, 1, '#111'));     // scowling mouth
+    // Bare muscular torso
+    p.push(...this.pxRect(7, 9, 14, 4, skin));       // shoulders
+    p.push(...this.pxRect(6, 13, 16, 4, skinLt));    // chest
+    p.push(...this.pxRect(8, 14, 4, 2, skinDk));     // pec shadow L
+    p.push(...this.pxRect(16, 14, 4, 2, skinDk));    // pec shadow R
+    p.push(...this.pxRect(12, 16, 4, 1, skinDk));    // abs line
+    // Arms (bare muscular)
+    p.push(...this.pxRect(3, 10, 4, 7, skin));       // left arm
+    p.push(...this.pxRect(21, 10, 4, 7, skin));      // right arm
+    p.push(...this.pxRect(3, 17, 3, 2, skinLt));     // left fist
+    p.push(...this.pxRect(22, 17, 3, 2, skinLt));    // right fist
+    // Belt
+    p.push(...this.pxRect(6, 17, 16, 2, '#444'));
+    p.push(...this.pxRect(12, 17, 4, 2, '#888'));     // buckle
+    // Pants
+    p.push(...this.pxRect(7, 19, 6, 10, pants));
+    p.push(...this.pxRect(15, 19, 6, 10, pants));
+    p.push(...this.pxRect(8, 20, 4, 8, pantsDk));
+    p.push(...this.pxRect(16, 20, 4, 8, pantsDk));
+    // Shoes
+    p.push(...this.pxRect(6, 29, 7, 3, '#333'));
+    p.push(...this.pxRect(15, 29, 7, 3, '#333'));
+    return p;
+  }
+
+  // Gunman — ranged enemy with firearm (arcade Zeed gunman)
+  shurikenThrowerPixels() {
+    const p = [];
+    const jacket = '#556644';     // military green jacket
+    const jacketLt = '#667755';
+    const skin = '#D4A070';
+    const pants = '#444444';
+    // Head (military cap)
+    p.push(...this.pxRect(6, 0, 12, 2, '#333'));     // cap brim
+    p.push(...this.pxRect(7, 0, 10, 1, '#444'));
+    p.push(...this.pxRect(7, 2, 10, 5, skin));       // face
+    p.push(...this.pxRect(9, 3, 2, 1, '#222'));       // eyes
+    p.push(...this.pxRect(13, 3, 2, 1, '#222'));
+    p.push(...this.pxRect(10, 5, 4, 1, '#111'));      // grimace
+    // Torso (military jacket)
+    p.push(...this.pxRect(5, 7, 14, 9, jacket));
+    p.push(...this.pxRect(7, 8, 10, 7, jacketLt));
+    p.push(...this.pxRect(11, 8, 2, 7, '#445533'));   // jacket lapel
+    // Arms
+    p.push(...this.pxRect(2, 8, 3, 7, jacket));      // left arm
+    p.push(...this.pxRect(19, 7, 3, 4, jacket));     // right arm (raised with gun)
+    p.push(...this.pxRect(21, 7, 2, 2, skin));       // hand holding gun
+    p.push(...this.pxRect(22, 6, 2, 2, '#333'));      // gun
+    // Belt with holster
+    p.push(...this.pxRect(5, 16, 14, 2, '#553322'));
+    p.push(...this.pxRect(17, 14, 2, 4, '#443311'));  // holster
+    // Pants
+    p.push(...this.pxRect(6, 18, 5, 9, pants));
+    p.push(...this.pxRect(13, 18, 5, 9, pants));
+    // Boots
+    p.push(...this.pxRect(5, 27, 6, 3, '#332211'));
+    p.push(...this.pxRect(12, 27, 6, 3, '#332211'));
+    return p;
+  }
+
+  // Purple Swordsman Guard — Mongolian-style guard near hostages (arcade)
+  samuraiPixels() {
+    const p = [];
+    const robe = '#6B2D8B';       // purple robe (arcade swordsman)
+    const robeLt = '#8B4DAB';
+    const robeDk = '#4B1D6B';
+    const skin = '#D4A070';
+    const skinDk = '#B88050';
+    // Head wrap / turban
+    p.push(...this.pxRect(8, 0, 16, 3, '#DDDDCC'));   // white headwrap
+    p.push(...this.pxRect(10, 0, 12, 2, '#EEEEEE'));
+    // Face
+    p.push(...this.pxRect(10, 3, 12, 5, skin));
+    p.push(...this.pxRect(12, 4, 3, 2, '#222'));      // left eye
+    p.push(...this.pxRect(17, 4, 3, 2, '#222'));      // right eye
+    p.push(...this.pxRect(14, 6, 4, 1, '#111'));      // stern mouth
+    p.push(...this.pxRect(10, 6, 2, 2, skinDk));     // beard L
+    p.push(...this.pxRect(20, 6, 2, 2, skinDk));     // beard R
+    // Shoulder armor plates
+    p.push(...this.pxRect(3, 8, 6, 4, robeDk));
+    p.push(...this.pxRect(23, 8, 6, 4, robeDk));
+    p.push(...this.pxRect(4, 8, 4, 2, robe));
+    p.push(...this.pxRect(24, 8, 4, 2, robe));
+    // Robed torso
+    p.push(...this.pxRect(8, 8, 16, 14, robe));
+    p.push(...this.pxRect(10, 9, 12, 12, robeLt));
+    p.push(...this.pxRect(14, 10, 4, 10, robe));     // center fold
+    // Arms
+    p.push(...this.pxRect(3, 12, 5, 8, robe));
+    p.push(...this.pxRect(24, 12, 5, 8, robe));
+    p.push(...this.pxRect(3, 20, 4, 2, skin));       // hands
+    p.push(...this.pxRect(25, 20, 4, 2, skin));
+    // Belt/sash
+    p.push(...this.pxRect(8, 22, 16, 2, '#CCAA33'));   // gold sash
+    // Lower robe (skirt)
+    p.push(...this.pxRect(6, 24, 20, 6, robeDk));
+    p.push(...this.pxRect(8, 24, 6, 6, robe));
+    p.push(...this.pxRect(18, 24, 6, 6, robe));
+    // Legs
+    p.push(...this.pxRect(9, 30, 5, 5, '#333'));
+    p.push(...this.pxRect(18, 30, 5, 5, '#333'));
+    // Boots
+    p.push(...this.pxRect(8, 35, 6, 3, '#222'));
+    p.push(...this.pxRect(17, 35, 6, 3, '#222'));
+    // Sword held forward
+    p.push(...this.pxRect(28, 10, 2, 2, '#AA8833'));   // hilt
+    p.push(...this.pxRect(29, 5, 2, 5, '#CCCCDD'));    // blade up
+    p.push(...this.pxRect(30, 5, 1, 5, '#AAAACC'));    // blade shadow
+    return p;
+  }
+
+  // Wall Crawler Ninja — green bodysuit ninja (arcade, agile enemy)
+  jumperPixels() {
+    const p = [];
+    const suit = '#226644';       // green bodysuit
+    const suitLt = '#338855';
+    const suitDk = '#115533';
+    const gloves = '#CCAA22';     // yellow gloves/boots
+    // Head (full mask)
+    p.push(...this.pxRect(8, 0, 10, 3, suit));
+    p.push(...this.pxRect(8, 3, 10, 4, suitLt));
+    p.push(...this.pxRect(10, 4, 6, 2, '#FFFFFF'));   // white eye band
+    p.push(...this.pxRect(11, 4, 2, 2, '#111'));      // eye L
+    p.push(...this.pxRect(15, 4, 2, 2, '#111'));      // eye R
+    // Torso (slim, agile)
+    p.push(...this.pxRect(7, 7, 12, 8, suit));
+    p.push(...this.pxRect(9, 8, 8, 6, suitLt));
+    p.push(...this.pxRect(12, 8, 2, 6, suitDk));     // center line
+    // Arms (spread for jump/crawl)
+    p.push(...this.pxRect(3, 8, 4, 6, suit));
+    p.push(...this.pxRect(19, 8, 4, 6, suit));
+    p.push(...this.pxRect(3, 14, 3, 2, gloves));     // yellow gloves
+    p.push(...this.pxRect(20, 14, 3, 2, gloves));
+    // Belt
+    p.push(...this.pxRect(7, 15, 12, 1, gloves));
+    // Legs
+    p.push(...this.pxRect(8, 16, 4, 10, suit));
+    p.push(...this.pxRect(14, 16, 4, 10, suit));
+    p.push(...this.pxRect(9, 17, 2, 8, suitLt));
+    p.push(...this.pxRect(15, 17, 2, 8, suitLt));
+    // Yellow boots
+    p.push(...this.pxRect(7, 26, 5, 3, gloves));
+    p.push(...this.pxRect(14, 26, 5, 3, gloves));
+    return p;
+  }
+
+  // Orange Swordsman Guard — heavier variant near hostages (arcade)
+  bossMinionPixels() {
+    const p = [];
+    const robe = '#CC7722';       // orange robe (arcade variant)
+    const robeLt = '#DD9944';
+    const robeDk = '#AA5500';
+    const skin = '#D4A070';
+    const armor = '#888888';
+    // Head (armored helmet)
+    p.push(...this.pxRect(7, 0, 16, 4, armor));
+    p.push(...this.pxRect(9, 0, 12, 2, '#999'));
+    // Face
+    p.push(...this.pxRect(9, 4, 12, 4, skin));
+    p.push(...this.pxRect(11, 5, 2, 2, '#222'));     // eyes
+    p.push(...this.pxRect(17, 5, 2, 2, '#222'));
+    p.push(...this.pxRect(13, 6, 4, 1, '#111'));     // stern face
+    // Shoulder armor
+    p.push(...this.pxRect(2, 8, 6, 5, armor));
+    p.push(...this.pxRect(22, 8, 6, 5, armor));
+    p.push(...this.pxRect(3, 8, 4, 3, '#999'));
+    p.push(...this.pxRect(23, 8, 4, 3, '#999'));
+    // Robed torso
+    p.push(...this.pxRect(7, 8, 16, 12, robe));
+    p.push(...this.pxRect(9, 9, 12, 10, robeLt));
+    // Arms
+    p.push(...this.pxRect(2, 13, 5, 7, robe));
+    p.push(...this.pxRect(23, 13, 5, 7, robe));
+    p.push(...this.pxRect(2, 20, 4, 2, skin));
+    p.push(...this.pxRect(24, 20, 4, 2, skin));
+    // Belt
+    p.push(...this.pxRect(7, 20, 16, 2, '#CCAA33'));
+    // Lower robe
+    p.push(...this.pxRect(6, 22, 18, 6, robeDk));
+    p.push(...this.pxRect(8, 22, 5, 6, robe));
+    p.push(...this.pxRect(17, 22, 5, 6, robe));
+    // Legs
+    p.push(...this.pxRect(8, 28, 5, 6, '#333'));
+    p.push(...this.pxRect(17, 28, 5, 6, '#333'));
+    // Boots
+    p.push(...this.pxRect(7, 34, 6, 3, '#222'));
+    p.push(...this.pxRect(16, 34, 6, 3, '#222'));
+    // Sword
+    p.push(...this.pxRect(27, 10, 2, 2, '#AA8833'));
+    p.push(...this.pxRect(28, 4, 2, 6, '#CCCCDD'));
+    return p;
+  }
+
+  // Masked Ninja Boss — large armored ninja boss (arcade mid-boss)
+  miniBossPixels() {
+    const p = [];
+    const armor = '#4444AA';      // blue armor
+    const armorLt = '#5555CC';
+    const armorDk = '#333388';
+    const skin = '#D4A070';
+    const mask = '#222222';
+    const gold = '#FFD700';
+    // Helmet with crest
+    p.push(...this.pxRect(14, 0, 20, 3, gold));       // gold crest
+    p.push(...this.pxRect(16, 0, 16, 2, '#FFE84D'));
+    p.push(...this.pxRect(10, 3, 28, 6, armor));      // helmet
+    p.push(...this.pxRect(12, 4, 24, 4, armorLt));
+    // Face (masked)
+    p.push(...this.pxRect(14, 9, 20, 6, mask));
+    p.push(...this.pxRect(18, 10, 4, 3, '#FF2222'));   // glowing red eyes
+    p.push(...this.pxRect(26, 10, 4, 3, '#FF2222'));
+    p.push(...this.pxRect(20, 13, 8, 2, '#333'));      // mouth guard
+    // Massive armored torso
+    p.push(...this.pxRect(8, 15, 32, 18, armor));
+    p.push(...this.pxRect(12, 16, 24, 16, armorLt));
+    // Chest emblem
+    p.push(...this.pxRect(20, 18, 8, 2, gold));
+    p.push(...this.pxRect(22, 20, 4, 4, gold));
+    // Shoulder armor (massive)
+    p.push(...this.pxRect(2, 15, 6, 8, armorDk));
+    p.push(...this.pxRect(40, 15, 6, 8, armorDk));
+    p.push(...this.pxRect(3, 16, 4, 6, armor));
+    p.push(...this.pxRect(41, 16, 4, 6, armor));
+    // Arms
+    p.push(...this.pxRect(2, 23, 6, 8, armor));
+    p.push(...this.pxRect(40, 23, 6, 8, armor));
+    p.push(...this.pxRect(1, 31, 6, 3, skin));        // fists
+    p.push(...this.pxRect(41, 31, 6, 3, skin));
+    // Belt
+    p.push(...this.pxRect(8, 33, 32, 3, gold));
+    // Armored skirt
+    p.push(...this.pxRect(6, 36, 36, 5, armorDk));
+    p.push(...this.pxRect(8, 36, 8, 5, armor));
+    p.push(...this.pxRect(20, 36, 8, 5, armor));
+    p.push(...this.pxRect(32, 36, 6, 5, armor));
+    // Legs
+    p.push(...this.pxRect(12, 41, 8, 10, armorDk));
+    p.push(...this.pxRect(28, 41, 8, 10, armorDk));
+    p.push(...this.pxRect(14, 42, 4, 8, armor));
+    p.push(...this.pxRect(30, 42, 4, 8, armor));
+    // Boots
+    p.push(...this.pxRect(10, 51, 10, 4, '#333'));
+    p.push(...this.pxRect(28, 51, 10, 4, '#333'));
+    return p;
+  }
+
+  // Nakahara — Zeed Leader / Final Boss (arcade, masked ninja master)
+  finalBossPixels() {
+    const p = [];
+    const robe = '#880000';       // deep red robe
+    const robeLt = '#AA2222';
+    const robeDk = '#660000';
+    const armor = '#888888';
+    const armorLt = '#AAAAAA';
+    const skin = '#D4A070';
+    const gold = '#FFD700';
+    // Elaborate masked helmet
+    p.push(...this.pxRect(16, 0, 24, 3, gold));       // crown crest
+    p.push(...this.pxRect(20, 0, 16, 2, '#FFE84D'));
+    p.push(...this.pxRect(12, 3, 32, 6, '#222'));      // dark helmet
+    p.push(...this.pxRect(14, 4, 28, 4, '#333'));
+    // Masked face (white demon mask)
+    p.push(...this.pxRect(16, 9, 24, 7, '#EEEEEE'));   // white mask
+    p.push(...this.pxRect(18, 9, 20, 5, '#FFFFFF'));
+    p.push(...this.pxRect(20, 10, 4, 3, '#FF0000'));   // angry red eyes
+    p.push(...this.pxRect(32, 10, 4, 3, '#FF0000'));
+    p.push(...this.pxRect(24, 13, 8, 2, '#333'));      // mask mouth slit
+    // Cape (flowing)
+    p.push(...this.pxRect(4, 16, 8, 30, robe));
+    p.push(...this.pxRect(44, 16, 8, 30, robe));
+    p.push(...this.pxRect(6, 18, 4, 26, robeLt));
+    p.push(...this.pxRect(46, 18, 4, 26, robeLt));
+    // Shoulder armor
+    p.push(...this.pxRect(6, 16, 12, 6, armor));
+    p.push(...this.pxRect(38, 16, 12, 6, armor));
+    p.push(...this.pxRect(8, 17, 8, 4, armorLt));
+    p.push(...this.pxRect(40, 17, 8, 4, armorLt));
+    // Chest (ornate dark robe with armor)
+    p.push(...this.pxRect(14, 16, 28, 16, robe));
+    p.push(...this.pxRect(18, 18, 20, 12, robeLt));
+    // Zeed emblem on chest
+    p.push(...this.pxRect(22, 20, 12, 2, gold));
+    p.push(...this.pxRect(24, 22, 8, 2, gold));
+    p.push(...this.pxRect(26, 24, 4, 3, gold));
+    // Belt
+    p.push(...this.pxRect(14, 32, 28, 3, '#222'));
+    p.push(...this.pxRect(24, 32, 8, 3, gold));       // gold buckle
+    // Robe skirt
+    p.push(...this.pxRect(12, 35, 32, 6, robeDk));
+    p.push(...this.pxRect(14, 35, 6, 6, robe));
+    p.push(...this.pxRect(22, 35, 12, 6, robe));
+    p.push(...this.pxRect(36, 35, 6, 6, robe));
+    // Legs
+    p.push(...this.pxRect(16, 41, 8, 12, '#222'));
+    p.push(...this.pxRect(32, 41, 8, 12, '#222'));
+    p.push(...this.pxRect(18, 42, 4, 10, '#333'));
+    p.push(...this.pxRect(34, 42, 4, 10, '#333'));
+    // Boots
+    p.push(...this.pxRect(14, 53, 10, 4, '#111'));
+    p.push(...this.pxRect(32, 53, 10, 4, '#111'));
+    // Katana (massive, glowing blade)
+    p.push(...this.pxRect(50, 8, 3, 3, gold));        // tsuba
+    p.push(...this.pxRect(51, 11, 2, 24, '#DDEEFF')); // blade (bluish steel)
+    p.push(...this.pxRect(52, 11, 1, 24, '#BBCCDD')); // blade shadow
+    return p;
+  }
+
+  // === SHURIKEN PROJECTILE ===
+  shurikenProjPixels() {
+    const p = [];
+    const metal = '#CCCCCC';
+    const metalDk = '#888888';
+    const center = '#444444';
+    // Star shape (5x5 center + points)
+    p.push(...this.pxRect(4, 0, 2, 3, metal));   // top point
+    p.push(...this.pxRect(0, 3, 3, 2, metal));   // left point
+    p.push(...this.pxRect(7, 3, 3, 2, metal));   // right point
+    p.push(...this.pxRect(4, 7, 2, 3, metal));   // bottom point
+    p.push(...this.pxRect(3, 3, 4, 4, metalDk)); // center body
+    p.push(...this.pxRect(4, 4, 2, 2, center));  // center hole
+    return p;
+  }
+
+  // === HIT EFFECT ===
+  drawHitEffect() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 20;
+    canvas.height = 20;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    // Star burst pattern
+    ctx.fillRect(8, 0, 4, 20);
+    ctx.fillRect(0, 8, 20, 4);
+    ctx.fillRect(3, 3, 4, 4);
+    ctx.fillRect(13, 3, 4, 4);
+    ctx.fillRect(3, 13, 4, 4);
+    ctx.fillRect(13, 13, 4, 4);
+    ctx.fillStyle = '#FFFF00';
+    ctx.fillRect(8, 8, 4, 4);
+    this.textures.addCanvas('hit_fx', canvas);
+  }
+
+  // === HUD HOSTAGE ICONS ===
+  hostageIconPixels() {
+    const p = [];
+    p.push(...this.pxRect(3, 0, 6, 3, '#FFD700'));   // head
+    p.push(...this.pxRect(4, 1, 4, 2, '#FFEE66'));
+    p.push(...this.pxRect(2, 3, 8, 7, '#FFCC00'));   // body
+    p.push(...this.pxRect(3, 4, 6, 5, '#FFD700'));
+    p.push(...this.pxRect(3, 10, 3, 4, '#DDAA00'));   // legs
+    p.push(...this.pxRect(6, 10, 3, 4, '#DDAA00'));
+    p.push(...this.pxRect(5, 5, 1, 1, '#000'));
+    p.push(...this.pxRect(7, 5, 1, 1, '#000'));
+    return p;
+  }
+
+  hostageIconEmptyPixels() {
+    const p = [];
+    p.push(...this.pxRect(3, 0, 6, 3, '#333'));
+    p.push(...this.pxRect(2, 3, 8, 7, '#2a2a2a'));
+    p.push(...this.pxRect(3, 10, 3, 4, '#222'));
+    p.push(...this.pxRect(6, 10, 3, 4, '#222'));
+    return p;
+  }
+
+  // === GROUND TILE (arcade-style stone/concrete) ===
+  drawGroundTile() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 48;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    // Base stone/concrete
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(0, 0, 64, 48);
+    // Top edge highlight
+    ctx.fillStyle = '#999999';
+    ctx.fillRect(0, 0, 64, 2);
+    ctx.fillStyle = '#AAAAAA';
+    ctx.fillRect(0, 0, 64, 1);
+    // Brick/stone pattern
+    ctx.fillStyle = '#777777';
+    ctx.fillRect(0, 3, 64, 1);      // mortar line
+    ctx.fillRect(0, 12, 64, 1);
+    ctx.fillRect(0, 21, 64, 1);
+    ctx.fillRect(0, 30, 64, 1);
+    ctx.fillRect(0, 39, 64, 1);
+    // Vertical mortar lines (offset pattern)
+    ctx.fillStyle = '#777777';
+    for (let row = 0; row < 5; row++) {
+      const yOff = row * 9 + 3;
+      const xOff = (row % 2) * 16;
+      for (let x = xOff; x < 64; x += 32) {
+        ctx.fillRect(x, yOff, 1, 9);
+      }
+    }
+    // Stone texture variation
+    ctx.fillStyle = '#7A7A7A';
+    for (let i = 0; i < 8; i++) {
+      const sx = Math.floor(Math.random() * 58);
+      const sy = 4 + Math.floor(Math.random() * 40);
+      ctx.fillRect(sx, sy, 3 + Math.floor(Math.random() * 4), 2);
+    }
+    // Dark bottom edge
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(0, 46, 64, 2);
+
+    this.textures.addCanvas('ground', canvas);
+  }
+
+  // === PLATFORM TILE (reuses ground key but let's add visual variety in game scene) ===
+  drawPlatformTile() {
+    // Platforms use same ground texture, handled in addPlatform
+  }
+
+  // === TOUCH BUTTON ===
+  drawTouchButton(key, r, color, label) {
+    const canvas = document.createElement('canvas');
+    canvas.width = r * 2;
+    canvas.height = r * 2;
+    const ctx = canvas.getContext('2d');
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(r, r, r - 1, 0, Math.PI * 2);
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    ctx.fillStyle = hex;
+    ctx.globalAlpha = 0.6;
+    ctx.fill();
+    // Inner highlight
+    ctx.beginPath();
+    ctx.arc(r, r - 2, r * 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.globalAlpha = 0.15;
+    ctx.fill();
+    // Label
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, r, r + 1);
+    this.textures.addCanvas(key, canvas);
+  }
+
+  makeCircle(key, r, color, alpha) {
+    const canvas = document.createElement('canvas');
+    canvas.width = r * 2;
+    canvas.height = r * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(r, r, r - 1, 0, Math.PI * 2);
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    ctx.fillStyle = hex;
+    ctx.globalAlpha = alpha;
+    ctx.fill();
+    this.textures.addCanvas(key, canvas);
+  }
+}
+
+// ============================================================
+// GAME SCENE — main gameplay
+// ============================================================
+class GameScene extends Phaser.Scene {
+  constructor() { super('Game'); }
+
+  create() {
+    // State
+    this.score = 0;
+    this.hiScore = parseInt(localStorage.getItem('shinobi_hi') || '0');
+    this.lives = 3;
+    this.hostagesTotal = 5;
+    this.hostagesRescued = 0;
+    this.missionTime = MISSION_TIME;
+    this.gameOver = false;
+    this.gameWon = false;
+    this.lastAttackTime = 0;
+    this.spawnIndex = 0;
+    this.elapsed = 0;
+    this.cameraOffsetX = 0;
+    this.playerFacing = 1; // 1=right, -1=left
+    this.isMobile = this.checkMobile();
+
+    // World bounds (wide scrolling level)
+    const WORLD_W = 4000;
+    this.physics.world.setBounds(0, 0, WORLD_W, GAME_H);
+    this.cameras.main.setBounds(0, 0, WORLD_W, GAME_H);
+
+    // --- Parallax backgrounds (detailed pixel art) ---
+    this.bgLayers = [];
+    const totalW = WORLD_W + GAME_W;
+
+    // Layer 0: Night sky (arcade dark blue)
+    const sky = this.add.graphics();
+    sky.fillStyle(0x0a0a2a, 1);
+    sky.fillRect(0, 0, totalW, GAME_H);
+    // Gradient sky (deep blue to slightly lighter)
+    sky.fillStyle(0x0a0a2a, 1); sky.fillRect(0, 0, totalW, 40);
+    sky.fillStyle(0x101040, 1); sky.fillRect(0, 40, totalW, 20);
+    sky.fillStyle(0x151550, 1); sky.fillRect(0, 60, totalW, 20);
+    sky.fillStyle(0x1a1a5a, 1); sky.fillRect(0, 80, totalW, GAME_H - 80);
+    // Stars
+    sky.fillStyle(0xFFFFFF, 0.8);
+    for (let i = 0; i < 80; i++) {
+      const sx = Math.random() * totalW;
+      const sy = Math.random() * 100;
+      const ss = Math.random() > 0.8 ? 2 : 1;
+      sky.fillRect(sx, sy, ss, ss);
+    }
+    // Moon
+    sky.fillStyle(0xFFEECC, 0.9);
+    sky.fillCircle(200, 35, 18);
+    sky.fillStyle(0xFFDD99, 0.6);
+    sky.fillCircle(196, 32, 14);
+    sky.fillStyle(0x1a1a3e, 0.8);
+    sky.fillCircle(190, 30, 12); // crescent shadow
+    sky.setScrollFactor(0.05, 1);
+    this.bgLayers.push({ graphics: sky });
+
+    // Layer 1: Distant city buildings silhouette (arcade — dark blue)
+    const dist = this.add.graphics();
+    dist.fillStyle(0x111133, 1);
+    dist.fillRect(0, 80, totalW, 100);
+    // Building silhouettes (darker)
+    for (let x = 0; x < totalW; x += 40 + Math.floor(Math.random() * 60)) {
+      const bw = 25 + Math.floor(Math.random() * 40);
+      const bh = 40 + Math.floor(Math.random() * 60);
+      dist.fillStyle(0x0a0a22, 1);
+      dist.fillRect(x, 180 - bh, bw, bh);
+      // Lit windows (yellow dots like arcade)
+      dist.fillStyle(0xFFDD44, 0.7);
+      for (let wy = 180 - bh + 6; wy < 175; wy += 10) {
+        for (let wx = x + 4; wx < x + bw - 4; wx += 8) {
+          if (Math.random() > 0.4) {
+            dist.fillRect(wx, wy, 2, 3);
+          }
+        }
+      }
+    }
+    dist.setScrollFactor(0.15, 1);
+    this.bgLayers.push({ graphics: dist });
+
+    // Layer 2: Mid-range buildings (arcade — brown/tan brick)
+    const mid = this.add.graphics();
+    mid.fillStyle(0x8B7766, 1);
+    mid.fillRect(0, 160, totalW, 80);
+    for (let x = 0; x < totalW; x += 60 + Math.floor(Math.random() * 40)) {
+      const bw = 50 + Math.floor(Math.random() * 40);
+      const bh = 50 + Math.floor(Math.random() * 30);
+      // Building body (brownish brick)
+      mid.fillStyle(0x7A6655, 1);
+      mid.fillRect(x, 240 - bh, bw, bh);
+      mid.fillStyle(0x8B7766, 1);
+      mid.fillRect(x + 2, 240 - bh, bw - 4, 3); // roof edge
+      // Windows (dark with slight blue tint)
+      mid.fillStyle(0x222244, 0.8);
+      for (let wy = 240 - bh + 8; wy < 235; wy += 12) {
+        for (let wx = x + 6; wx < x + bw - 6; wx += 12) {
+          mid.fillRect(wx, wy, 6, 8);
+          // Window frame
+          mid.fillStyle(0x6A5A4A, 1);
+          mid.fillRect(wx - 1, wy - 1, 8, 1);
+          mid.fillRect(wx - 1, wy + 8, 8, 1);
+          mid.fillStyle(0x222244, 0.8);
+        }
+      }
+      // Door at bottom
+      if (Math.random() > 0.4) {
+        mid.fillStyle(0x3A2A1A, 1);
+        mid.fillRect(x + bw / 2 - 5, 230, 10, 10);
+        mid.fillStyle(0xAA8833, 1);
+        mid.fillRect(x + bw / 2 + 3, 235, 1, 1);
+      }
+    }
+    mid.setScrollFactor(0.30, 1);
+    this.bgLayers.push({ graphics: mid });
+
+    // Layer 3: Vertical fence/bars (arcade — teal/green metal bars)
+    const fence = this.add.graphics();
+    fence.fillStyle(0x334455, 1);
+    fence.fillRect(0, 180, totalW, 80);
+    // Horizontal bar strips (arcade-style blue/teal fence)
+    fence.fillStyle(0x335566, 1);
+    fence.fillRect(0, 182, totalW, 3);   // top rail
+    fence.fillRect(0, 255, totalW, 3);   // bottom rail
+    // Vertical bars (teal/green like arcade)
+    for (let x = 0; x < totalW; x += 8) {
+      fence.fillStyle(0x447766, 0.9);
+      fence.fillRect(x, 185, 2, 70);
+      // Alternate bar shade
+      if (x % 16 === 0) {
+        fence.fillStyle(0x558877, 0.7);
+        fence.fillRect(x + 1, 185, 1, 70);
+      }
+    }
+    // Street lamps on top of fence (like arcade)
+    for (let x = 80; x < totalW; x += 200 + Math.floor(Math.random() * 100)) {
+      fence.fillStyle(0x666666, 1);
+      fence.fillRect(x, 170, 3, 15);     // lamp post
+      fence.fillStyle(0xFFDD44, 0.8);
+      fence.fillRect(x - 2, 168, 7, 4);  // lamp light
+      fence.fillStyle(0xFFEE88, 0.3);
+      fence.fillRect(x - 4, 165, 11, 3); // glow
+    }
+    fence.setScrollFactor(0.50, 1);
+    this.bgLayers.push({ graphics: fence });
+
+    // Layer 4: Stone walkway / building base (arcade — brick/stone wall)
+    const stores = this.add.graphics();
+    stores.fillStyle(0x7A6655, 1);
+    stores.fillRect(0, 260, totalW, 100);
+    // Brick pattern on wall
+    for (let y = 262; y < 355; y += 8) {
+      const xOff = ((y - 262) / 8 % 2) * 16;
+      stores.fillStyle(0x6A5544, 1);
+      stores.fillRect(0, y, totalW, 1); // horizontal mortar
+      stores.fillStyle(0x6A5544, 0.6);
+      for (let x = xOff; x < totalW; x += 32) {
+        stores.fillRect(x, y, 1, 8); // vertical mortar
+      }
+    }
+    // Blue/purple horizontal stripe accents (like arcade)
+    stores.fillStyle(0x334466, 0.8);
+    stores.fillRect(0, 300, totalW, 6);
+    stores.fillRect(0, 320, totalW, 6);
+    stores.fillRect(0, 340, totalW, 6);
+    // Window details in wall
+    for (let x = 20; x < totalW; x += 80 + Math.floor(Math.random() * 40)) {
+      // Window
+      stores.fillStyle(0xDDCC44, 0.6);
+      stores.fillRect(x, 275, 4, 6);
+      stores.fillRect(x + 30, 275, 4, 6);
+    }
+    // Ground detail strip
+    stores.fillStyle(0x666666, 1);
+    stores.fillRect(0, 355, totalW, 5);
+    stores.setScrollFactor(0.75, 1);
+    this.bgLayers.push({ graphics: stores });
+
+    // Layer 5: Foreground — cross-hatch metal grating (arcade signature element)
+    const gndDetail = this.add.graphics();
+    gndDetail.fillStyle(0x888888, 1);
+    gndDetail.fillRect(0, 370, totalW, 30);
+    // Cross-hatch / diamond pattern (like arcade metal grate)
+    for (let x = 0; x < totalW; x += 12) {
+      for (let y = 370; y < 400; y += 12) {
+        // Diamond pattern
+        gndDetail.fillStyle(0x999999, 0.6);
+        gndDetail.fillRect(x, y, 6, 1);
+        gndDetail.fillRect(x + 6, y + 6, 6, 1);
+        gndDetail.fillStyle(0x777777, 0.6);
+        gndDetail.fillRect(x + 3, y + 3, 1, 6);
+        gndDetail.fillRect(x + 9, y + 3, 1, 6);
+      }
+    }
+    // Top edge line
+    gndDetail.fillStyle(0xAAAAAA, 1);
+    gndDetail.fillRect(0, 370, totalW, 2);
+    gndDetail.setScrollFactor(0.90, 1);
+    this.bgLayers.push({ graphics: gndDetail });
+
+    // --- Ground ---
+    this.groundGroup = this.physics.add.staticGroup();
+    for (let x = 0; x < 4000; x += 64) {
+      this.groundGroup.create(x + 32, GROUND_Y + 24, 'ground');
+    }
+
+    // --- Platforms (elevated areas) ---
+    this.addPlatform(300, GROUND_Y - 80, 3);
+    this.addPlatform(600, GROUND_Y - 60, 2);
+    this.addPlatform(1000, GROUND_Y - 100, 4);
+    this.addPlatform(1500, GROUND_Y - 70, 3);
+    this.addPlatform(2000, GROUND_Y - 90, 5);
+    this.addPlatform(2600, GROUND_Y - 80, 3);
+    this.addPlatform(3200, GROUND_Y - 100, 4);
+
+    // --- Hostages ---
+    this.hostages = this.physics.add.group();
+    const hostagePositions = [400, 900, 1400, 2200, 3000];
+    for (const hx of hostagePositions) {
+      const h = this.hostages.create(hx, GROUND_Y - 18, 'hostage');
+      h.setImmovable(true);
+      h.body.allowGravity = false;
+      h.rescued = false;
+      // Pulsing effect
+      this.tweens.add({
+        targets: h, alpha: 0.5, duration: 600, yoyo: true, repeat: -1
+      });
+    }
+
+    // --- Player ---
+    this.player = this.physics.add.sprite(100, GROUND_Y - 40, 'player');
+    this.player.setCollideWorldBounds(true);
+    this.player.body.setGravityY(GRAVITY);
+    this.player.setDepth(10);
+    this.physics.add.collider(this.player, this.groundGroup);
+
+    // Camera follow
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setDeadzone(100, 50);
+
+    // --- Enemies group ---
+    this.enemies = this.physics.add.group();
+    this.projectiles = this.physics.add.group();
+
+    // --- Collisions ---
+    this.physics.add.collider(this.enemies, this.groundGroup);
+    this.physics.add.overlap(this.player, this.hostages, this.rescueHostage, null, this);
+    this.physics.add.overlap(this.player, this.enemies, this.playerHit, null, this);
+    this.physics.add.overlap(this.player, this.projectiles, this.playerHitProjectile, null, this);
+
+    // --- Input ---
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys = this.input.keyboard.addKeys({
+      w: 'W', a: 'A', s: 'S', d: 'D',
+      space: 'SPACE', f: 'F', enter: 'ENTER'
+    });
+
+    // --- Touch controls ---
+    this.touchState = { left: false, right: false, jump: false, attack: false };
+    if (this.isMobile) {
+      this.createTouchControls();
+    }
+
+    // --- HUD (fixed to camera) ---
+    this.createHUD();
+
+    // --- Attack effect group ---
+    this.attackFx = this.add.group();
+
+    // --- Start message ---
+    this.showMessage('STAGE 1 — RESCUE THE HOSTAGES', 2000);
+  }
+
+  checkMobile() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+  }
+
+  addPlatform(x, y, count) {
+    for (let i = 0; i < count; i++) {
+      const p = this.groundGroup.create(x + i * 64, y + 24, 'ground');
+      p.setScale(1, 0.5).refreshBody();
+    }
+  }
+
+  // --- TOUCH CONTROLS ---
+  createTouchControls() {
+    const cam = this.cameras.main;
+
+    // D-pad (left side)
+    this.dpadBase = this.add.image(80, GAME_H - 80, 'dpad_base')
+      .setScrollFactor(0).setDepth(100).setAlpha(0.5);
+    this.dpadKnob = this.add.image(80, GAME_H - 80, 'dpad_knob')
+      .setScrollFactor(0).setDepth(101);
+
+    // Buttons (right side)
+    this.btnJump = this.add.image(GAME_W - 60, GAME_H - 110, 'btn_jump')
+      .setScrollFactor(0).setDepth(100).setAlpha(0.6);
+    this.btnAttack = this.add.image(GAME_W - 120, GAME_H - 60, 'btn_attack')
+      .setScrollFactor(0).setDepth(100).setAlpha(0.6);
+
+    // Labels
+    this.add.text(GAME_W - 60, GAME_H - 110, 'J', {
+      fontSize: '14px', color: '#fff', fontFamily: 'monospace'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(102);
+    this.add.text(GAME_W - 120, GAME_H - 60, 'A', {
+      fontSize: '14px', color: '#fff', fontFamily: 'monospace'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(102);
+
+    // Touch handling
+    this.input.on('pointerdown', (pointer) => this.handleTouch(pointer, true));
+    this.input.on('pointermove', (pointer) => { if (pointer.isDown) this.handleTouch(pointer, true); });
+    this.input.on('pointerup', (pointer) => this.handleTouchUp(pointer));
+
+    // Multi-touch
+    this.input.addPointer(2); // support up to 3 pointers
+  }
+
+  handleTouch(pointer, isDown) {
+    const x = pointer.x;
+    const y = pointer.y;
+
+    // Left half = movement
+    if (x < GAME_W / 2) {
+      const dx = x - 80;
+      const dy = y - (GAME_H - 80);
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 70) {
+        this.touchState.left = dx < -15;
+        this.touchState.right = dx > 15;
+        // Knob visual
+        const maxDist = 30;
+        const clampDist = Math.min(dist, maxDist);
+        const angle = Math.atan2(dy, dx);
+        this.dpadKnob.x = 80 + Math.cos(angle) * clampDist;
+        this.dpadKnob.y = (GAME_H - 80) + Math.sin(angle) * clampDist;
+      }
+    }
+
+    // Right half = buttons
+    if (x > GAME_W / 2) {
+      const jumpDist = Phaser.Math.Distance.Between(x, y, GAME_W - 60, GAME_H - 110);
+      const atkDist = Phaser.Math.Distance.Between(x, y, GAME_W - 120, GAME_H - 60);
+
+      if (jumpDist < 40) {
+        this.touchState.jump = true;
+        this.btnJump.setAlpha(1);
+      }
+      if (atkDist < 40) {
+        this.touchState.attack = true;
+        this.btnAttack.setAlpha(1);
+      }
+    }
+  }
+
+  handleTouchUp(pointer) {
+    const x = pointer.x;
+    if (x < GAME_W / 2) {
+      this.touchState.left = false;
+      this.touchState.right = false;
+      if (this.dpadKnob) {
+        this.dpadKnob.x = 80;
+        this.dpadKnob.y = GAME_H - 80;
+      }
+    } else {
+      this.touchState.jump = false;
+      this.touchState.attack = false;
+      if (this.btnJump) this.btnJump.setAlpha(0.6);
+      if (this.btnAttack) this.btnAttack.setAlpha(0.6);
+    }
+  }
+
+  // --- HUD ---
+  createHUD() {
+    const style = { fontSize: '16px', fontFamily: '"Press Start 2P", monospace', color: '#ffffff' };
+    const smallStyle = { ...style, fontSize: '10px' };
+
+    // HUD background bar (arcade-style black bar)
+    const hudBg = this.add.graphics().setScrollFactor(0).setDepth(50);
+    hudBg.fillStyle(0x000000, 0.85);
+    hudBg.fillRect(0, 0, GAME_W, 36);
+
+    // Bottom bar
+    hudBg.fillRect(0, GAME_H - 30, GAME_W, 30);
+
+    // 1P + Lives (top-left, blue text like arcade)
+    this.hudLives = this.add.text(10, 8, '1P  ♥♥♥', {
+      ...style, color: '#4488FF'
+    }).setScrollFactor(0).setDepth(51);
+
+    // Score (top-left after 1P, white numbers like arcade)
+    this.hudScore = this.add.text(160, 8, '000000', style)
+      .setScrollFactor(0).setDepth(51);
+
+    // Hi-Score (top-right, red "HI" + red numbers like arcade)
+    this.hudHiScore = this.add.text(GAME_W - 10, 8, 'HI ' + String(this.hiScore).padStart(6, '0'), {
+      ...style, color: '#FF2222'
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(51);
+
+    // Hostage icons (bottom-left, arcade "SAVE" in orange)
+    this.add.text(10, GAME_H - 24, 'SAVE', { ...smallStyle, color: '#FFAA22' })
+      .setScrollFactor(0).setDepth(51);
+    this.hostageIcons = [];
+    for (let i = 0; i < this.hostagesTotal; i++) {
+      const icon = this.add.image(60 + i * 18, GAME_H - 16, 'hostage_icon_empty')
+        .setScrollFactor(0).setDepth(51);
+      this.hostageIcons.push(icon);
+    }
+
+    // Timer (bottom-right, arcade orange/yellow)
+    this.hudTimer = this.add.text(GAME_W - 10, GAME_H - 24, this.formatTime(this.missionTime), {
+      ...style, color: '#FFAA22', fontSize: '14px'
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(51);
+
+    // Enemy health bar (for bosses, hidden initially)
+    this.bossBar = this.add.graphics().setScrollFactor(0).setDepth(52);
+    this.bossBar.visible = false;
+    this.bossName = this.add.text(GAME_W / 2, 42, '', {
+      ...smallStyle, color: '#FF4444'
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(52).setVisible(false);
+  }
+
+  formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  updateHUD() {
+    this.hudLives.setText('1P  ' + '♥'.repeat(Math.max(0, this.lives)));
+    this.hudScore.setText(String(this.score).padStart(6, '0'));
+    this.hudTimer.setText(this.formatTime(Math.max(0, this.missionTime)));
+
+    // Flash timer red when low
+    if (this.missionTime < 30) {
+      this.hudTimer.setColor(Math.floor(this.elapsed * 4) % 2 ? '#FF0000' : '#FF6666');
+    }
+
+    // Update hi-score
+    if (this.score > this.hiScore) {
+      this.hiScore = this.score;
+      this.hudHiScore.setText('HI ' + String(this.hiScore).padStart(6, '0'));
+    }
+
+    // Boss health bar
+    let boss = null;
+    this.enemies.getChildren().forEach(e => {
+      if (e.active && e.enemyType && (e.enemyType === 'mini_boss' || e.enemyType === 'final_boss')) {
+        boss = e;
+      }
+    });
+    if (boss) {
+      const maxHp = ENEMY_TYPES[boss.enemyType].hp;
+      const pct = boss.hp / maxHp;
+      this.bossBar.clear();
+      this.bossBar.visible = true;
+      this.bossName.setVisible(true);
+      this.bossName.setText(boss.enemyType === 'final_boss' ? 'SHOGUN' : 'ONI DEMON');
+      // Bar background
+      this.bossBar.fillStyle(0x333333, 0.8);
+      this.bossBar.fillRect(GAME_W / 2 - 100, 56, 200, 10);
+      // Bar fill
+      this.bossBar.fillStyle(pct > 0.3 ? 0xFF0000 : 0xFF6600, 1);
+      this.bossBar.fillRect(GAME_W / 2 - 100, 56, 200 * pct, 10);
+    } else {
+      this.bossBar.visible = false;
+      this.bossName.setVisible(false);
+    }
+  }
+
+  // --- SPAWN ---
+  spawnEnemy(type, x) {
+    const cfg = ENEMY_TYPES[type];
+    if (!cfg) return;
+
+    const spawnX = x || this.player.x + GAME_W / 2 + 50 + Math.random() * 100;
+    const spawnY = GROUND_Y - cfg.h / 2;
+
+    const enemy = this.enemies.create(spawnX, spawnY, 'enemy_' + type);
+    enemy.body.setGravityY(GRAVITY);
+    enemy.setCollideWorldBounds(true);
+    enemy.enemyType = type;
+    enemy.hp = cfg.hp;
+    enemy.maxHp = cfg.hp;
+    enemy.moveSpeed = cfg.speed;
+    enemy.scoreValue = cfg.score;
+    enemy.setDepth(8);
+
+    // Move toward player
+    enemy.body.setVelocityX(-cfg.speed);
+
+    // Jumpers jump periodically
+    if (type === 'jumper') {
+      this.time.addEvent({
+        delay: 1200 + Math.random() * 800,
+        loop: true,
+        callback: () => {
+          if (enemy.active && enemy.body.touching.down) {
+            enemy.body.setVelocityY(-350);
+          }
+        }
+      });
+    }
+
+    // Shuriken throwers shoot
+    if (type === 'shuriken') {
+      this.time.addEvent({
+        delay: 1500 + Math.random() * 1000,
+        loop: true,
+        callback: () => {
+          if (enemy.active) this.shootProjectile(enemy);
+        }
+      });
+    }
+
+    return enemy;
+  }
+
+  shootProjectile(enemy) {
+    const proj = this.projectiles.create(enemy.x, enemy.y, 'shuriken_proj');
+    proj.body.allowGravity = false;
+    const dir = enemy.x > this.player.x ? -1 : 1;
+    proj.body.setVelocityX(dir * 250);
+    proj.setDepth(9);
+    // Auto-destroy after 3s
+    this.time.delayedCall(3000, () => { if (proj.active) proj.destroy(); });
+  }
+
+  // --- COMBAT ---
+  playerAttack() {
+    const now = this.time.now;
+    if (now - this.lastAttackTime < ATTACK_COOLDOWN) return;
+    this.lastAttackTime = now;
+
+    // Visual attack effect
+    const atkX = this.player.x + this.playerFacing * 30;
+    const fx = this.add.sprite(atkX, this.player.y, 'player_attack')
+      .setAlpha(0.6).setDepth(11);
+    this.tweens.add({
+      targets: fx, alpha: 0, scaleX: 1.5, scaleY: 1.5,
+      duration: 200, onComplete: () => fx.destroy()
+    });
+
+    // Check hits
+    this.enemies.getChildren().forEach(enemy => {
+      if (!enemy.active) return;
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+      const dirToEnemy = enemy.x - this.player.x;
+      // Only hit enemies in front of player
+      if (dist < ATTACK_RANGE && dirToEnemy * this.playerFacing >= 0) {
+        this.hitEnemy(enemy);
+      }
+    });
+  }
+
+  hitEnemy(enemy) {
+    enemy.hp--;
+    // Flash white
+    enemy.setTintFill(0xFFFFFF);
+    this.time.delayedCall(80, () => { if (enemy.active) enemy.clearTint(); });
+
+    // Hit effect
+    const hfx = this.add.sprite(enemy.x, enemy.y, 'hit_fx').setDepth(12);
+    this.tweens.add({
+      targets: hfx, alpha: 0, scaleX: 2, scaleY: 2,
+      duration: 250, onComplete: () => hfx.destroy()
+    });
+
+    if (enemy.hp <= 0) {
+      this.addScore(enemy.scoreValue);
+      // Death effect — flash and fade
+      enemy.body.setVelocity(0, -200);
+      this.tweens.add({
+        targets: enemy, alpha: 0, duration: 300,
+        onComplete: () => enemy.destroy()
+      });
+
+      // Score popup
+      const popup = this.add.text(enemy.x, enemy.y - 20,
+        '+' + enemy.scoreValue,
+        { fontSize: '12px', fontFamily: 'monospace', color: '#FFFF00' }
+      ).setDepth(20);
+      this.tweens.add({
+        targets: popup, y: popup.y - 40, alpha: 0,
+        duration: 800, onComplete: () => popup.destroy()
+      });
+
+      // Camera shake for bosses
+      if (enemy.enemyType === 'mini_boss' || enemy.enemyType === 'final_boss') {
+        this.cameras.main.shake(400, 0.02);
+      }
+    } else {
+      // Knockback
+      const kb = this.playerFacing * 100;
+      enemy.body.setVelocityX(kb);
+    }
+  }
+
+  playerHit(player, enemy) {
+    if (this.gameOver || player.invulnerable) return;
+    this.loseLife();
+  }
+
+  playerHitProjectile(player, proj) {
+    if (this.gameOver || player.invulnerable) return;
+    proj.destroy();
+    this.loseLife();
+  }
+
+  loseLife() {
+    this.lives--;
+    this.player.invulnerable = true;
+
+    // Flash player
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0.3, duration: 100, yoyo: true, repeat: 10,
+      onComplete: () => {
+        this.player.setAlpha(1);
+        this.player.invulnerable = false;
+      }
+    });
+
+    this.cameras.main.shake(200, 0.015);
+
+    if (this.lives <= 0) {
+      this.endGame(false);
+    }
+  }
+
+  rescueHostage(player, hostage) {
+    if (hostage.rescued) return;
+    hostage.rescued = true;
+    this.hostagesRescued++;
+
+    // Update icon
+    if (this.hostagesRescued <= this.hostageIcons.length) {
+      this.hostageIcons[this.hostagesRescued - 1].setTexture('hostage_icon');
+    }
+
+    // Score
+    this.addScore(500);
+
+    // Effect
+    this.tweens.add({
+      targets: hostage, y: hostage.y - 60, alpha: 0,
+      duration: 600, onComplete: () => hostage.destroy()
+    });
+
+    // Flash message
+    this.showMessage('HOSTAGE RESCUED!  +500', 1500);
+
+    // Check win
+    if (this.hostagesRescued >= this.hostagesTotal) {
+      this.time.delayedCall(1000, () => this.endGame(true));
+    }
+  }
+
+  addScore(pts) {
+    this.score += pts;
+  }
+
+  showMessage(text, duration) {
+    const msg = this.add.text(GAME_W / 2, GAME_H / 2 - 30, text, {
+      fontSize: '18px', fontFamily: '"Press Start 2P", monospace',
+      color: '#FFD700', stroke: '#000000', strokeThickness: 3
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(60);
+
+    this.tweens.add({
+      targets: msg, alpha: 0, y: msg.y - 20,
+      delay: duration - 400, duration: 400,
+      onComplete: () => msg.destroy()
+    });
+  }
+
+  endGame(won) {
+    this.gameOver = true;
+    this.gameWon = won;
+
+    // Save hi-score
+    if (this.score > this.hiScore) {
+      try { localStorage.setItem('shinobi_hi', String(this.score)); } catch(e) {}
+    }
+
+    // Overlay
+    const overlay = this.add.graphics().setScrollFactor(0).setDepth(80);
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, GAME_W, GAME_H);
+
+    const title = won ? 'MISSION COMPLETE!' : 'GAME OVER';
+    const titleColor = won ? '#FFD700' : '#FF0000';
+
+    this.add.text(GAME_W / 2, GAME_H / 2 - 50, title, {
+      fontSize: '28px', fontFamily: '"Press Start 2P", monospace',
+      color: titleColor, stroke: '#000', strokeThickness: 4
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(81);
+
+    this.add.text(GAME_W / 2, GAME_H / 2 + 10,
+      `SCORE: ${this.score}    HOSTAGES: ${this.hostagesRescued}/${this.hostagesTotal}`, {
+      fontSize: '12px', fontFamily: 'monospace', color: '#FFFFFF'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(81);
+
+    const restartText = this.isMobile ? 'TAP TO RESTART' : 'PRESS ENTER TO RESTART';
+    const restart = this.add.text(GAME_W / 2, GAME_H / 2 + 60, restartText, {
+      fontSize: '14px', fontFamily: 'monospace', color: '#AAAAAA'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(81);
+
+    this.tweens.add({
+      targets: restart, alpha: 0.3, duration: 500, yoyo: true, repeat: -1
+    });
+  }
+
+  // --- UPDATE LOOP ---
+  update(time, delta) {
+    if (this.gameOver) {
+      if (this.keys.enter.isDown || (this.isMobile && this.input.activePointer.isDown)) {
+        this.scene.restart();
+      }
+      return;
+    }
+
+    const dt = delta / 1000;
+    this.elapsed += dt;
+    this.missionTime -= dt;
+
+    if (this.missionTime <= 0) {
+      this.endGame(false);
+      return;
+    }
+
+    // --- Player movement ---
+    const onGround = this.player.body.touching.down || this.player.body.blocked.down;
+    let moveX = 0;
+
+    const left = this.cursors.left.isDown || this.keys.a.isDown || this.touchState.left;
+    const right = this.cursors.right.isDown || this.keys.d.isDown || this.touchState.right;
+    const jumpPress = Phaser.Input.Keyboard.JustDown(this.cursors.up)
+      || Phaser.Input.Keyboard.JustDown(this.keys.w)
+      || Phaser.Input.Keyboard.JustDown(this.keys.space)
+      || this.touchState.jump;
+    const attackPress = Phaser.Input.Keyboard.JustDown(this.keys.f) || this.touchState.attack;
+
+    if (left) {
+      moveX = -PLAYER_SPEED;
+      this.playerFacing = -1;
+      this.player.setFlipX(true);
+    } else if (right) {
+      moveX = PLAYER_SPEED;
+      this.playerFacing = 1;
+      this.player.setFlipX(false);
+    }
+
+    this.player.body.setVelocityX(moveX);
+
+    if (jumpPress && onGround) {
+      this.player.body.setVelocityY(PLAYER_JUMP);
+    }
+
+    if (attackPress) {
+      this.playerAttack();
+    }
+
+    // --- Enemy AI ---
+    this.enemies.getChildren().forEach(enemy => {
+      if (!enemy.active) return;
+
+      // Face player
+      if (enemy.x > this.player.x) {
+        enemy.setFlipX(false);
+        enemy.body.setVelocityX(-enemy.moveSpeed);
+      } else {
+        enemy.setFlipX(true);
+        enemy.body.setVelocityX(enemy.moveSpeed);
+      }
+
+      // Remove if too far off screen
+      if (Math.abs(enemy.x - this.player.x) > GAME_W * 1.5) {
+        enemy.destroy();
+      }
+    });
+
+    // --- Spawn timeline ---
+    while (this.spawnIndex < SPAWN_TIMELINE.length &&
+           this.elapsed >= SPAWN_TIMELINE[this.spawnIndex].t) {
+      const ev = SPAWN_TIMELINE[this.spawnIndex];
+      for (let i = 0; i < ev.count; i++) {
+        const side = Math.random() > 0.3 ? 1 : -1; // mostly from right
+        const sx = this.player.x + side * (GAME_W / 2 + 50 + i * 60);
+        this.spawnEnemy(ev.type, sx);
+      }
+      this.spawnIndex++;
+    }
+
+    // --- Continuous spawning after timeline ends ---
+    if (this.spawnIndex >= SPAWN_TIMELINE.length && Math.random() < 0.003) {
+      const types = ['ninja_runner', 'ninja_runner', 'jumper', 'shuriken', 'samurai'];
+      this.spawnEnemy(types[Math.floor(Math.random() * types.length)]);
+    }
+
+    // --- Update HUD ---
+    this.updateHUD();
+
+    // Reset single-frame touch states
+    if (this.isMobile) {
+      this.touchState.jump = false;
+      this.touchState.attack = false;
+    }
+  }
+}
+
+// ============================================================
+// PHASER CONFIG
+// ============================================================
+const config = {
+  type: Phaser.AUTO,
+  width: GAME_W,
+  height: GAME_H,
+  parent: 'game-container',
+  backgroundColor: '#1a1a2e',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 0 },
+      debug: false
+    }
+  },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: [BootScene, GameScene],
+  input: {
+    activePointers: 3
+  },
+  render: {
+    pixelArt: true,
+    antialias: false
+  }
+};
+
+// Load pixel font
+const fontLink = document.createElement('link');
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
+fontLink.rel = 'stylesheet';
+document.head.appendChild(fontLink);
+
+// Wait for font then start
+document.fonts.ready.then(() => {
+  new Phaser.Game(config);
+});
+</script>
+</body>
+</html>
