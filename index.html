@@ -777,48 +777,53 @@ class GameScene extends Phaser.Scene {
     this.bgLayers = [];
     const totalW = WORLD_W + GAME_W;
 
-    // Layer 0: Night sky (arcade dark blue)
+    // ================================================================
+    // ARCADE-ACCURATE BACKGROUND LAYOUT (Shinobi 1987 Stage 1)
+    // From top to bottom:
+    //   Sky+stars (~40-100)  |  City silhouettes (~100-170)
+    //   Fence bars (~140-230) |  Brick wall (~200-330)
+    //   Stone walkway (~330-370)  |  Cross-hatch grating (~370-450)
+    // Characters walk at GROUND_Y=402
+    // ================================================================
+
+    // Layer 0: Night sky (arcade dark blue/black)
     const sky = this.add.graphics();
-    sky.fillStyle(0x0a0a2a, 1);
+    sky.fillStyle(0x000011, 1);
     sky.fillRect(0, 0, totalW, GAME_H);
-    // Gradient sky (deep blue to slightly lighter)
-    sky.fillStyle(0x0a0a2a, 1); sky.fillRect(0, 0, totalW, 40);
-    sky.fillStyle(0x101040, 1); sky.fillRect(0, 40, totalW, 20);
-    sky.fillStyle(0x151550, 1); sky.fillRect(0, 60, totalW, 20);
-    sky.fillStyle(0x1a1a5a, 1); sky.fillRect(0, 80, totalW, GAME_H - 80);
-    // Stars
+    // Gradient sky
+    sky.fillStyle(0x000011, 1); sky.fillRect(0, 0, totalW, 50);
+    sky.fillStyle(0x0a0a2a, 1); sky.fillRect(0, 50, totalW, 30);
+    sky.fillStyle(0x111144, 1); sky.fillRect(0, 80, totalW, GAME_H - 80);
+    // Stars (small white dots)
     sky.fillStyle(0xFFFFFF, 0.8);
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 60; i++) {
       const sx = Math.random() * totalW;
-      const sy = Math.random() * 100;
-      const ss = Math.random() > 0.8 ? 2 : 1;
-      sky.fillRect(sx, sy, ss, ss);
+      const sy = Math.random() * 80;
+      sky.fillRect(sx, sy, 1, 1);
     }
-    // Moon
+    // Moon (crescent)
     sky.fillStyle(0xFFEECC, 0.9);
-    sky.fillCircle(200, 35, 18);
-    sky.fillStyle(0xFFDD99, 0.6);
-    sky.fillCircle(196, 32, 14);
-    sky.fillStyle(0x1a1a3e, 0.8);
-    sky.fillCircle(190, 30, 12); // crescent shadow
+    sky.fillCircle(200, 30, 14);
+    sky.fillStyle(0x000011, 0.85);
+    sky.fillCircle(194, 27, 11);
     sky.setScrollFactor(0.05, 1);
     this.bgLayers.push({ graphics: sky });
 
-    // Layer 1: Distant city buildings silhouette (arcade — dark blue)
+    // Layer 1: Distant city skyline with lit windows
     const dist = this.add.graphics();
-    dist.fillStyle(0x111133, 1);
-    dist.fillRect(0, 80, totalW, 100);
-    // Building silhouettes (darker)
-    for (let x = 0; x < totalW; x += 40 + Math.floor(Math.random() * 60)) {
-      const bw = 25 + Math.floor(Math.random() * 40);
-      const bh = 40 + Math.floor(Math.random() * 60);
-      dist.fillStyle(0x0a0a22, 1);
-      dist.fillRect(x, 180 - bh, bw, bh);
-      // Lit windows (yellow dots like arcade)
-      dist.fillStyle(0xFFDD44, 0.7);
-      for (let wy = 180 - bh + 6; wy < 175; wy += 10) {
-        for (let wx = x + 4; wx < x + bw - 4; wx += 8) {
-          if (Math.random() > 0.4) {
+    dist.fillStyle(0x0a0a22, 1);
+    dist.fillRect(0, 60, totalW, 120);
+    // Building silhouettes (tall, dark)
+    for (let x = 0; x < totalW; x += 35 + Math.floor(Math.random() * 50)) {
+      const bw = 20 + Math.floor(Math.random() * 35);
+      const bh = 30 + Math.floor(Math.random() * 80);
+      dist.fillStyle(0x060618, 1);
+      dist.fillRect(x, 170 - bh, bw, bh);
+      // Lit windows (small yellow dots)
+      dist.fillStyle(0xFFDD44, 0.8);
+      for (let wy = 170 - bh + 5; wy < 165; wy += 8) {
+        for (let wx = x + 3; wx < x + bw - 3; wx += 6) {
+          if (Math.random() > 0.35) {
             dist.fillRect(wx, wy, 2, 3);
           }
         }
@@ -827,122 +832,134 @@ class GameScene extends Phaser.Scene {
     dist.setScrollFactor(0.15, 1);
     this.bgLayers.push({ graphics: dist });
 
-    // Layer 2: Mid-range buildings (arcade — brown/tan brick)
+    // Layer 2: Mid-range buildings (brown/tan brick facades)
     const mid = this.add.graphics();
     mid.fillStyle(0x8B7766, 1);
-    mid.fillRect(0, 160, totalW, 80);
-    for (let x = 0; x < totalW; x += 60 + Math.floor(Math.random() * 40)) {
-      const bw = 50 + Math.floor(Math.random() * 40);
-      const bh = 50 + Math.floor(Math.random() * 30);
-      // Building body (brownish brick)
+    mid.fillRect(0, 120, totalW, 110);
+    for (let x = 0; x < totalW; x += 55 + Math.floor(Math.random() * 35)) {
+      const bw = 45 + Math.floor(Math.random() * 35);
+      const bh = 40 + Math.floor(Math.random() * 40);
+      // Building body
       mid.fillStyle(0x7A6655, 1);
-      mid.fillRect(x, 240 - bh, bw, bh);
+      mid.fillRect(x, 220 - bh, bw, bh);
       mid.fillStyle(0x8B7766, 1);
-      mid.fillRect(x + 2, 240 - bh, bw - 4, 3); // roof edge
-      // Windows (dark with slight blue tint)
+      mid.fillRect(x + 2, 220 - bh, bw - 4, 3); // roof edge
+      // Windows (dark)
       mid.fillStyle(0x222244, 0.8);
-      for (let wy = 240 - bh + 8; wy < 235; wy += 12) {
-        for (let wx = x + 6; wx < x + bw - 6; wx += 12) {
-          mid.fillRect(wx, wy, 6, 8);
-          // Window frame
+      for (let wy = 220 - bh + 8; wy < 216; wy += 11) {
+        for (let wx = x + 5; wx < x + bw - 5; wx += 10) {
+          mid.fillRect(wx, wy, 5, 7);
           mid.fillStyle(0x6A5A4A, 1);
-          mid.fillRect(wx - 1, wy - 1, 8, 1);
-          mid.fillRect(wx - 1, wy + 8, 8, 1);
+          mid.fillRect(wx - 1, wy - 1, 7, 1);
+          mid.fillRect(wx - 1, wy + 7, 7, 1);
           mid.fillStyle(0x222244, 0.8);
         }
-      }
-      // Door at bottom
-      if (Math.random() > 0.4) {
-        mid.fillStyle(0x3A2A1A, 1);
-        mid.fillRect(x + bw / 2 - 5, 230, 10, 10);
-        mid.fillStyle(0xAA8833, 1);
-        mid.fillRect(x + bw / 2 + 3, 235, 1, 1);
       }
     }
     mid.setScrollFactor(0.30, 1);
     this.bgLayers.push({ graphics: mid });
 
-    // Layer 3: Vertical fence/bars (arcade — teal/green metal bars)
+    // Layer 3: Vertical fence/bars (arcade teal/green — narrower, behind walkway)
     const fence = this.add.graphics();
-    fence.fillStyle(0x334455, 1);
-    fence.fillRect(0, 180, totalW, 80);
-    // Horizontal bar strips (arcade-style blue/teal fence)
+    // Fence background (dark)
+    fence.fillStyle(0x1a2233, 1);
+    fence.fillRect(0, 160, totalW, 100);
+    // Horizontal rails
     fence.fillStyle(0x335566, 1);
-    fence.fillRect(0, 182, totalW, 3);   // top rail
-    fence.fillRect(0, 255, totalW, 3);   // bottom rail
-    // Vertical bars (teal/green like arcade)
-    for (let x = 0; x < totalW; x += 8) {
-      fence.fillStyle(0x447766, 0.9);
-      fence.fillRect(x, 185, 2, 70);
-      // Alternate bar shade
-      if (x % 16 === 0) {
-        fence.fillStyle(0x558877, 0.7);
-        fence.fillRect(x + 1, 185, 1, 70);
+    fence.fillRect(0, 162, totalW, 3);    // top rail
+    fence.fillRect(0, 256, totalW, 3);    // bottom rail
+    // Vertical bars (teal/green)
+    for (let x = 0; x < totalW; x += 6) {
+      fence.fillStyle(0x3D7766, 0.9);
+      fence.fillRect(x, 165, 2, 91);
+      if (x % 12 === 0) {
+        fence.fillStyle(0x4D8877, 0.6);
+        fence.fillRect(x + 1, 165, 1, 91);
       }
     }
-    // Street lamps on top of fence (like arcade)
-    for (let x = 80; x < totalW; x += 200 + Math.floor(Math.random() * 100)) {
-      fence.fillStyle(0x666666, 1);
-      fence.fillRect(x, 170, 3, 15);     // lamp post
-      fence.fillStyle(0xFFDD44, 0.8);
-      fence.fillRect(x - 2, 168, 7, 4);  // lamp light
+    // Street lamps on top (arcade detail)
+    for (let x = 100; x < totalW; x += 180 + Math.floor(Math.random() * 80)) {
+      fence.fillStyle(0x555555, 1);
+      fence.fillRect(x, 150, 3, 15);
+      fence.fillStyle(0xFFDD44, 0.9);
+      fence.fillRect(x - 2, 148, 7, 4);
       fence.fillStyle(0xFFEE88, 0.3);
-      fence.fillRect(x - 4, 165, 11, 3); // glow
+      fence.fillRect(x - 4, 146, 11, 3);
     }
     fence.setScrollFactor(0.50, 1);
     this.bgLayers.push({ graphics: fence });
 
-    // Layer 4: Stone walkway / building base (arcade — brick/stone wall)
-    const stores = this.add.graphics();
-    stores.fillStyle(0x7A6655, 1);
-    stores.fillRect(0, 260, totalW, 100);
-    // Brick pattern on wall
-    for (let y = 262; y < 355; y += 8) {
-      const xOff = ((y - 262) / 8 % 2) * 16;
-      stores.fillStyle(0x6A5544, 1);
-      stores.fillRect(0, y, totalW, 1); // horizontal mortar
-      stores.fillStyle(0x6A5544, 0.6);
+    // Layer 4: Brick wall behind walkway + blue horizontal accents
+    const wall = this.add.graphics();
+    wall.fillStyle(0x6A5544, 1);
+    wall.fillRect(0, 240, totalW, 130);
+    // Brick pattern
+    for (let y = 242; y < 365; y += 8) {
+      const xOff = ((y - 242) / 8 % 2) * 16;
+      wall.fillStyle(0x5A4434, 1);
+      wall.fillRect(0, y, totalW, 1);
+      wall.fillStyle(0x5A4434, 0.5);
       for (let x = xOff; x < totalW; x += 32) {
-        stores.fillRect(x, y, 1, 8); // vertical mortar
+        wall.fillRect(x, y, 1, 8);
       }
     }
-    // Blue/purple horizontal stripe accents (like arcade)
-    stores.fillStyle(0x334466, 0.8);
-    stores.fillRect(0, 300, totalW, 6);
-    stores.fillRect(0, 320, totalW, 6);
-    stores.fillRect(0, 340, totalW, 6);
-    // Window details in wall
-    for (let x = 20; x < totalW; x += 80 + Math.floor(Math.random() * 40)) {
-      // Window
-      stores.fillStyle(0xDDCC44, 0.6);
-      stores.fillRect(x, 275, 4, 6);
-      stores.fillRect(x + 30, 275, 4, 6);
+    // Blue/purple horizontal stripe accents (arcade signature)
+    wall.fillStyle(0x2A3366, 0.9);
+    wall.fillRect(0, 270, totalW, 5);
+    wall.fillRect(0, 290, totalW, 5);
+    wall.fillRect(0, 310, totalW, 5);
+    wall.fillRect(0, 330, totalW, 5);
+    // Yellow window lights in wall
+    for (let x = 30; x < totalW; x += 100 + Math.floor(Math.random() * 60)) {
+      wall.fillStyle(0xDDCC44, 0.7);
+      wall.fillRect(x, 250, 4, 6);
+      wall.fillRect(x + 40, 250, 4, 6);
     }
-    // Ground detail strip
-    stores.fillStyle(0x666666, 1);
-    stores.fillRect(0, 355, totalW, 5);
-    stores.setScrollFactor(0.75, 1);
-    this.bgLayers.push({ graphics: stores });
+    // Stone walkway edge (top of where characters walk)
+    wall.fillStyle(0x888877, 1);
+    wall.fillRect(0, 360, totalW, 4);
+    wall.fillStyle(0x999988, 1);
+    wall.fillRect(0, 360, totalW, 2);
+    wall.setScrollFactor(0.75, 1);
+    this.bgLayers.push({ graphics: wall });
 
-    // Layer 5: Foreground — cross-hatch metal grating (arcade signature element)
+    // Layer 5: Cross-hatch metal grating (LARGE — arcade's most distinctive element)
     const gndDetail = this.add.graphics();
-    gndDetail.fillStyle(0x888888, 1);
-    gndDetail.fillRect(0, 370, totalW, 30);
-    // Cross-hatch / diamond pattern (like arcade metal grate)
-    for (let x = 0; x < totalW; x += 12) {
-      for (let y = 370; y < 400; y += 12) {
-        // Diamond pattern
-        gndDetail.fillStyle(0x999999, 0.6);
-        gndDetail.fillRect(x, y, 6, 1);
-        gndDetail.fillRect(x + 6, y + 6, 6, 1);
-        gndDetail.fillStyle(0x777777, 0.6);
-        gndDetail.fillRect(x + 3, y + 3, 1, 6);
-        gndDetail.fillRect(x + 9, y + 3, 1, 6);
+    // Fill the entire lower area with grating
+    gndDetail.fillStyle(0x808080, 1);
+    gndDetail.fillRect(0, 364, totalW, GAME_H - 364);
+    // Cross-hatch diamond pattern (like arcade)
+    for (let x = -10; x < totalW + 10; x += 10) {
+      for (let y = 366; y < GAME_H; y += 10) {
+        // Diamond lines going right-down
+        gndDetail.fillStyle(0x909090, 0.7);
+        gndDetail.fillRect(x + ((y - 366) % 10), y, 1, 1);
+        gndDetail.fillRect(x + ((y - 366) % 10) + 1, y, 1, 1);
+        // Diamond lines going left-down
+        gndDetail.fillStyle(0x707070, 0.7);
+        gndDetail.fillRect(x + 10 - ((y - 366) % 10), y, 1, 1);
       }
     }
-    // Top edge line
+    // Stronger cross pattern
+    for (let x = 0; x < totalW; x += 20) {
+      for (let y = 366; y < GAME_H; y += 20) {
+        gndDetail.fillStyle(0x999999, 0.5);
+        // Diagonal line NW-SE
+        for (let d = 0; d < 20; d++) {
+          gndDetail.fillRect(x + d, y + d, 1, 1);
+        }
+        // Diagonal line NE-SW
+        for (let d = 0; d < 20; d++) {
+          gndDetail.fillRect(x + 20 - d, y + d, 1, 1);
+        }
+      }
+    }
+    // Top edge highlight
     gndDetail.fillStyle(0xAAAAAA, 1);
-    gndDetail.fillRect(0, 370, totalW, 2);
+    gndDetail.fillRect(0, 364, totalW, 2);
+    // Bottom edge
+    gndDetail.fillStyle(0x666666, 1);
+    gndDetail.fillRect(0, GAME_H - 2, totalW, 2);
     gndDetail.setScrollFactor(0.90, 1);
     this.bgLayers.push({ graphics: gndDetail });
 
