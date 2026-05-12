@@ -163,432 +163,408 @@ class BootScene extends Phaser.Scene {
     return pixels;
   }
 
-  // === PLAYER SPRITE: Joe Musashi (1987 Arcade — white ninja suit) ===
+  // === PLAYER SPRITE: Joe Musashi (1987 Arcade — SIDE VIEW facing right) ===
   playerPixels() {
     const p = [];
     const skin = '#E8C090';
-    const suit = '#E8E0D0';       // white/cream ninja suit (arcade original)
-    const suitDk = '#C8C0B0';     // suit shadow
-    const suitLt = '#F5F0E8';     // suit highlight
+    const suit = '#E8E0D0';       // white/cream ninja suit
+    const suitDk = '#C8C0B0';
+    const suitLt = '#F5F0E8';
     const belt = '#CC2222';       // red belt/sash
     const hair = '#222222';
-    const eye = '#FFFFFF';
-    const headband = '#CC2222';   // red headband
-    const boot = '#8B4513';       // brown tabi boots
-    const outline = '#111111';
+    const headband = '#CC2222';
+    const boot = '#8B4513';
 
-    // Head (centered at x=10..18, y=0..10)
-    p.push(...this.pxRect(11, 0, 6, 2, hair));       // hair top
-    p.push(...this.pxRect(10, 2, 8, 2, hair));       // hair
+    // Head (profile facing right, x=10..20, y=0..10)
+    p.push(...this.pxRect(12, 0, 6, 2, hair));       // hair top
+    p.push(...this.pxRect(11, 2, 8, 2, hair));       // hair side
     p.push(...this.pxRect(10, 4, 8, 1, headband));   // red headband
-    p.push(...this.pxRect(10, 5, 8, 5, skin));       // face
-    p.push(...this.pxRect(12, 6, 2, 1, eye));        // left eye
-    p.push(...this.pxRect(16, 6, 2, 1, eye));        // right eye
-    p.push(...this.pxRect(12, 6, 1, 1, '#333'));      // pupil L
-    p.push(...this.pxRect(16, 6, 1, 1, '#333'));      // pupil R
-    p.push(...this.pxRect(13, 8, 2, 1, skin));       // mouth area
-    // White mask/scarf
-    p.push(...this.pxRect(10, 9, 8, 2, suitDk));
+    p.push(...this.pxRect(20, 4, 4, 2, headband));   // headband tail flowing back
+    p.push(...this.pxRect(22, 5, 3, 1, '#AA1111'));   // headband tail end
+    p.push(...this.pxRect(11, 5, 8, 5, skin));       // face (profile)
+    p.push(...this.pxRect(17, 6, 2, 1, '#FFFFFF'));   // eye (one visible in profile)
+    p.push(...this.pxRect(18, 6, 1, 1, '#333'));      // pupil
+    p.push(...this.pxRect(19, 8, 1, 1, skin));       // nose
+    p.push(...this.pxRect(11, 9, 7, 2, suitDk));     // mask/scarf (covers lower face)
 
-    // Torso (x=8..20, y=11..24)
-    p.push(...this.pxRect(9, 11, 10, 2, suit));       // shoulders
-    p.push(...this.pxRect(8, 13, 12, 6, suit));       // chest
-    p.push(...this.pxRect(10, 13, 8, 6, suitLt));     // chest highlight
-    p.push(...this.pxRect(8, 19, 12, 2, belt));       // red belt/sash
-    p.push(...this.pxRect(8, 21, 12, 4, suit));       // waist
+    // Torso (profile, slightly angled)
+    p.push(...this.pxRect(10, 11, 8, 2, suit));       // shoulders
+    p.push(...this.pxRect(9, 13, 9, 6, suit));        // chest
+    p.push(...this.pxRect(11, 13, 6, 6, suitLt));     // chest highlight
+    p.push(...this.pxRect(9, 19, 9, 2, belt));        // red belt
+    p.push(...this.pxRect(9, 21, 9, 3, suit));        // waist
 
-    // Arms (white sleeves)
-    p.push(...this.pxRect(5, 12, 3, 8, suit));        // left arm
-    p.push(...this.pxRect(5, 20, 3, 2, skin));        // left hand
-    p.push(...this.pxRect(20, 12, 3, 8, suit));       // right arm
-    p.push(...this.pxRect(20, 20, 3, 2, skin));       // right hand
+    // Back arm (behind body, left side)
+    p.push(...this.pxRect(7, 13, 3, 7, suitDk));      // back arm
+    p.push(...this.pxRect(6, 20, 2, 2, skin));        // back hand
+    // Front arm (extended forward for fighting)
+    p.push(...this.pxRect(18, 14, 3, 5, suit));       // front arm
+    p.push(...this.pxRect(21, 16, 2, 2, skin));       // front hand/fist
 
-    // Legs (y=25..38) — white pants
-    p.push(...this.pxRect(9, 25, 4, 8, suitDk));      // left leg
-    p.push(...this.pxRect(15, 25, 4, 8, suitDk));     // right leg
-    p.push(...this.pxRect(10, 25, 2, 8, suit));       // left leg highlight
-    p.push(...this.pxRect(16, 25, 2, 8, suit));       // right leg highlight
+    // Legs (walking pose — one forward, one back)
+    p.push(...this.pxRect(8, 24, 4, 9, suitDk));      // back leg
+    p.push(...this.pxRect(9, 24, 2, 9, suit));        // back leg highlight
+    p.push(...this.pxRect(14, 24, 4, 9, suit));       // front leg
+    p.push(...this.pxRect(15, 24, 2, 9, suitLt));     // front leg highlight
 
-    // Tabi boots (brown, y=33..38)
-    p.push(...this.pxRect(8, 33, 5, 4, boot));        // left boot
-    p.push(...this.pxRect(15, 33, 5, 4, boot));       // right boot
-    p.push(...this.pxRect(8, 36, 6, 2, '#6B3A10'));    // left sole
-    p.push(...this.pxRect(14, 36, 6, 2, '#6B3A10'));   // right sole
+    // Tabi boots
+    p.push(...this.pxRect(7, 33, 5, 4, boot));        // back boot
+    p.push(...this.pxRect(14, 33, 5, 4, boot));       // front boot
+    p.push(...this.pxRect(6, 36, 6, 2, '#6B3A10'));    // back sole
+    p.push(...this.pxRect(13, 36, 6, 2, '#6B3A10'));   // front sole
 
     return p;
   }
 
   playerAttackPixels() {
     const p = this.playerPixels();
-    const sword = '#DDEEFF';      // bluish steel blade
+    const sword = '#DDEEFF';
     const swordHilt = '#8B4513';
     const swordFlash = '#FFFFFF';
-    // Katana extending right (upgraded weapon from arcade)
-    p.push(...this.pxRect(23, 14, 2, 2, swordHilt));  // hilt
-    p.push(...this.pxRect(25, 12, 12, 2, sword));     // blade
-    p.push(...this.pxRect(25, 14, 12, 1, '#BBCCDD')); // blade shadow
-    p.push(...this.pxRect(36, 11, 3, 2, swordFlash)); // tip flash
+    // Katana extending right (side view)
+    p.push(...this.pxRect(22, 15, 2, 2, swordHilt));  // hilt
+    p.push(...this.pxRect(24, 14, 13, 2, sword));     // blade
+    p.push(...this.pxRect(24, 16, 13, 1, '#BBCCDD')); // blade shadow
+    p.push(...this.pxRect(36, 13, 3, 2, swordFlash)); // tip flash
     return p;
   }
 
-  // === HOSTAGE (arcade — kidnapped child/civilian) ===
+  // === HOSTAGE (side profile — tied up civilian) ===
   hostagePixels() {
     const p = [];
     const skin = '#E8C090';
-    const dress = '#DD5599';      // pink dress (as seen in arcade video)
+    const dress = '#DD5599';
     const dressLt = '#EE77BB';
     const hair = '#AA6633';
     const rope = '#AA8833';
 
-    // Head
-    p.push(...this.pxRect(6, 0, 8, 3, hair));
-    p.push(...this.pxRect(5, 1, 1, 3, hair));     // side hair L
-    p.push(...this.pxRect(14, 1, 1, 3, hair));    // side hair R
-    p.push(...this.pxRect(6, 3, 8, 5, skin));
-    p.push(...this.pxRect(8, 4, 1, 1, '#333'));    // eye L
-    p.push(...this.pxRect(11, 4, 1, 1, '#333'));   // eye R
-    p.push(...this.pxRect(9, 6, 2, 1, '#CC6666')); // mouth (worried)
-    // Body (pink dress)
-    p.push(...this.pxRect(5, 8, 10, 10, dress));
-    p.push(...this.pxRect(6, 9, 8, 8, dressLt));
+    // Head (profile facing right — looking toward player)
+    p.push(...this.pxRect(7, 0, 6, 3, hair));
+    p.push(...this.pxRect(6, 1, 2, 4, hair));     // hair back
+    p.push(...this.pxRect(8, 3, 5, 5, skin));     // face profile
+    p.push(...this.pxRect(11, 4, 1, 1, '#333'));   // eye
+    p.push(...this.pxRect(12, 6, 1, 1, '#CC6666'));// worried mouth
+    // Body (pink dress, profile)
+    p.push(...this.pxRect(6, 8, 7, 10, dress));
+    p.push(...this.pxRect(7, 9, 5, 8, dressLt));
     // Rope tied around
-    p.push(...this.pxRect(4, 10, 12, 1, rope));
-    p.push(...this.pxRect(4, 14, 12, 1, rope));
-    p.push(...this.pxRect(4, 12, 1, 2, rope));
-    p.push(...this.pxRect(15, 12, 1, 2, rope));
-    // Legs
-    p.push(...this.pxRect(6, 18, 3, 8, skin));    // bare legs
+    p.push(...this.pxRect(5, 10, 9, 1, rope));
+    p.push(...this.pxRect(5, 14, 9, 1, rope));
+    p.push(...this.pxRect(5, 11, 1, 3, rope));
+    p.push(...this.pxRect(13, 11, 1, 3, rope));
+    // Legs (profile)
+    p.push(...this.pxRect(7, 18, 3, 8, skin));
     p.push(...this.pxRect(11, 18, 3, 8, skin));
     // Shoes
-    p.push(...this.pxRect(5, 26, 4, 2, '#CC3366'));
+    p.push(...this.pxRect(6, 26, 4, 2, '#CC3366'));
     p.push(...this.pxRect(11, 26, 4, 2, '#CC3366'));
 
     return p;
   }
 
-  // === ENEMIES (1987 Arcade Zeed Drones) ===
-  // Mohawk Punk — shirtless muscular thug (Stage 1 basic enemy)
+  // === ENEMIES (1987 Arcade Zeed Drones — SIDE VIEW facing right) ===
+  // Mohawk Punk — shirtless thug (side profile)
   ninjaRunnerPixels() {
     const p = [];
     const skin = '#D4A070';
     const skinDk = '#B88050';
     const skinLt = '#E8D0A0';
-    const pants = '#4444AA';      // blue/dark pants
+    const pants = '#4444AA';
     const pantsDk = '#333388';
-    const mohawk = '#CC2222';     // red mohawk
-    // Mohawk hair
-    p.push(...this.pxRect(12, 0, 4, 2, mohawk));
-    p.push(...this.pxRect(11, 2, 6, 1, mohawk));
-    // Head (bare face)
-    p.push(...this.pxRect(9, 3, 10, 6, skin));
-    p.push(...this.pxRect(10, 3, 8, 5, skinLt));
-    p.push(...this.pxRect(11, 5, 2, 1, '#222'));     // eyes
-    p.push(...this.pxRect(16, 5, 2, 1, '#222'));
-    p.push(...this.pxRect(13, 7, 2, 1, '#111'));     // scowling mouth
-    // Bare muscular torso
-    p.push(...this.pxRect(7, 9, 14, 4, skin));       // shoulders
-    p.push(...this.pxRect(6, 13, 16, 4, skinLt));    // chest
-    p.push(...this.pxRect(8, 14, 4, 2, skinDk));     // pec shadow L
-    p.push(...this.pxRect(16, 14, 4, 2, skinDk));    // pec shadow R
-    p.push(...this.pxRect(12, 16, 4, 1, skinDk));    // abs line
-    // Arms (bare muscular)
-    p.push(...this.pxRect(3, 10, 4, 7, skin));       // left arm
-    p.push(...this.pxRect(21, 10, 4, 7, skin));      // right arm
-    p.push(...this.pxRect(3, 17, 3, 2, skinLt));     // left fist
-    p.push(...this.pxRect(22, 17, 3, 2, skinLt));    // right fist
+    const mohawk = '#CC2222';
+    // Mohawk (profile)
+    p.push(...this.pxRect(13, 0, 3, 2, mohawk));
+    p.push(...this.pxRect(12, 2, 4, 1, mohawk));
+    // Head (profile facing right)
+    p.push(...this.pxRect(11, 3, 7, 6, skin));
+    p.push(...this.pxRect(12, 3, 5, 5, skinLt));
+    p.push(...this.pxRect(16, 5, 2, 1, '#222'));      // eye
+    p.push(...this.pxRect(17, 7, 1, 1, '#111'));      // mouth
+    // Bare torso (profile)
+    p.push(...this.pxRect(10, 9, 7, 8, skin));
+    p.push(...this.pxRect(11, 10, 5, 6, skinLt));
+    p.push(...this.pxRect(12, 12, 3, 1, skinDk));    // chest muscle
+    p.push(...this.pxRect(12, 15, 3, 1, skinDk));    // abs
+    // Back arm
+    p.push(...this.pxRect(8, 10, 3, 6, skinDk));
+    p.push(...this.pxRect(7, 16, 2, 2, skin));       // back fist
+    // Front arm (punching forward)
+    p.push(...this.pxRect(17, 11, 4, 3, skin));
+    p.push(...this.pxRect(21, 12, 3, 2, skinLt));    // front fist
     // Belt
-    p.push(...this.pxRect(6, 17, 16, 2, '#444'));
-    p.push(...this.pxRect(12, 17, 4, 2, '#888'));     // buckle
-    // Pants
-    p.push(...this.pxRect(7, 19, 6, 10, pants));
-    p.push(...this.pxRect(15, 19, 6, 10, pants));
-    p.push(...this.pxRect(8, 20, 4, 8, pantsDk));
-    p.push(...this.pxRect(16, 20, 4, 8, pantsDk));
+    p.push(...this.pxRect(9, 17, 8, 2, '#444'));
+    p.push(...this.pxRect(14, 17, 3, 2, '#888'));
+    // Legs (walking)
+    p.push(...this.pxRect(8, 19, 4, 9, pants));      // back leg
+    p.push(...this.pxRect(14, 19, 4, 9, pants));     // front leg
+    p.push(...this.pxRect(9, 20, 2, 7, pantsDk));
+    p.push(...this.pxRect(15, 20, 2, 7, pantsDk));
     // Shoes
-    p.push(...this.pxRect(6, 29, 7, 3, '#333'));
-    p.push(...this.pxRect(15, 29, 7, 3, '#333'));
+    p.push(...this.pxRect(7, 28, 5, 3, '#333'));
+    p.push(...this.pxRect(14, 28, 5, 3, '#333'));
     return p;
   }
 
-  // Gunman — ranged enemy with firearm (arcade Zeed gunman)
+  // Gunman — ranged enemy (side profile facing right)
   shurikenThrowerPixels() {
     const p = [];
-    const jacket = '#556644';     // military green jacket
+    const jacket = '#556644';
     const jacketLt = '#667755';
     const skin = '#D4A070';
     const pants = '#444444';
-    // Head (military cap)
-    p.push(...this.pxRect(6, 0, 12, 2, '#333'));     // cap brim
-    p.push(...this.pxRect(7, 0, 10, 1, '#444'));
-    p.push(...this.pxRect(7, 2, 10, 5, skin));       // face
-    p.push(...this.pxRect(9, 3, 2, 1, '#222'));       // eyes
-    p.push(...this.pxRect(13, 3, 2, 1, '#222'));
-    p.push(...this.pxRect(10, 5, 4, 1, '#111'));      // grimace
-    // Torso (military jacket)
-    p.push(...this.pxRect(5, 7, 14, 9, jacket));
-    p.push(...this.pxRect(7, 8, 10, 7, jacketLt));
-    p.push(...this.pxRect(11, 8, 2, 7, '#445533'));   // jacket lapel
-    // Arms
-    p.push(...this.pxRect(2, 8, 3, 7, jacket));      // left arm
-    p.push(...this.pxRect(19, 7, 3, 4, jacket));     // right arm (raised with gun)
-    p.push(...this.pxRect(21, 7, 2, 2, skin));       // hand holding gun
-    p.push(...this.pxRect(22, 6, 2, 2, '#333'));      // gun
-    // Belt with holster
-    p.push(...this.pxRect(5, 16, 14, 2, '#553322'));
-    p.push(...this.pxRect(17, 14, 2, 4, '#443311'));  // holster
-    // Pants
-    p.push(...this.pxRect(6, 18, 5, 9, pants));
-    p.push(...this.pxRect(13, 18, 5, 9, pants));
+    // Head with cap (profile)
+    p.push(...this.pxRect(9, 0, 8, 2, '#333'));      // cap
+    p.push(...this.pxRect(10, 0, 6, 1, '#444'));
+    p.push(...this.pxRect(10, 2, 6, 5, skin));       // face profile
+    p.push(...this.pxRect(14, 3, 2, 1, '#222'));      // eye
+    p.push(...this.pxRect(15, 5, 1, 1, '#111'));      // mouth
+    // Torso (jacket, profile)
+    p.push(...this.pxRect(9, 7, 7, 9, jacket));
+    p.push(...this.pxRect(10, 8, 5, 7, jacketLt));
+    // Back arm
+    p.push(...this.pxRect(7, 8, 3, 6, jacket));
+    p.push(...this.pxRect(7, 14, 2, 2, skin));
+    // Front arm (holding gun forward)
+    p.push(...this.pxRect(16, 8, 3, 3, jacket));
+    p.push(...this.pxRect(19, 9, 2, 2, skin));       // hand
+    p.push(...this.pxRect(21, 8, 3, 2, '#333'));      // gun barrel
+    p.push(...this.pxRect(20, 10, 2, 1, '#222'));     // gun grip
+    // Belt
+    p.push(...this.pxRect(8, 16, 8, 2, '#553322'));
+    // Pants (walking)
+    p.push(...this.pxRect(8, 18, 4, 9, pants));
+    p.push(...this.pxRect(13, 18, 4, 9, pants));
     // Boots
-    p.push(...this.pxRect(5, 27, 6, 3, '#332211'));
-    p.push(...this.pxRect(12, 27, 6, 3, '#332211'));
+    p.push(...this.pxRect(7, 27, 5, 3, '#332211'));
+    p.push(...this.pxRect(13, 27, 5, 3, '#332211'));
     return p;
   }
 
-  // Purple Swordsman Guard — Mongolian-style guard near hostages (arcade)
+  // Purple Swordsman Guard (side profile facing right)
   samuraiPixels() {
     const p = [];
-    const robe = '#6B2D8B';       // purple robe (arcade swordsman)
+    const robe = '#6B2D8B';
     const robeLt = '#8B4DAB';
     const robeDk = '#4B1D6B';
     const skin = '#D4A070';
-    const skinDk = '#B88050';
-    // Head wrap / turban
-    p.push(...this.pxRect(8, 0, 16, 3, '#DDDDCC'));   // white headwrap
-    p.push(...this.pxRect(10, 0, 12, 2, '#EEEEEE'));
-    // Face
-    p.push(...this.pxRect(10, 3, 12, 5, skin));
-    p.push(...this.pxRect(12, 4, 3, 2, '#222'));      // left eye
-    p.push(...this.pxRect(17, 4, 3, 2, '#222'));      // right eye
-    p.push(...this.pxRect(14, 6, 4, 1, '#111'));      // stern mouth
-    p.push(...this.pxRect(10, 6, 2, 2, skinDk));     // beard L
-    p.push(...this.pxRect(20, 6, 2, 2, skinDk));     // beard R
-    // Shoulder armor plates
-    p.push(...this.pxRect(3, 8, 6, 4, robeDk));
-    p.push(...this.pxRect(23, 8, 6, 4, robeDk));
-    p.push(...this.pxRect(4, 8, 4, 2, robe));
-    p.push(...this.pxRect(24, 8, 4, 2, robe));
-    // Robed torso
-    p.push(...this.pxRect(8, 8, 16, 14, robe));
-    p.push(...this.pxRect(10, 9, 12, 12, robeLt));
-    p.push(...this.pxRect(14, 10, 4, 10, robe));     // center fold
-    // Arms
-    p.push(...this.pxRect(3, 12, 5, 8, robe));
-    p.push(...this.pxRect(24, 12, 5, 8, robe));
-    p.push(...this.pxRect(3, 20, 4, 2, skin));       // hands
-    p.push(...this.pxRect(25, 20, 4, 2, skin));
+    // Head wrap (profile)
+    p.push(...this.pxRect(11, 0, 8, 3, '#DDDDCC'));
+    p.push(...this.pxRect(12, 0, 6, 2, '#EEEEEE'));
+    // Face (profile)
+    p.push(...this.pxRect(13, 3, 6, 5, skin));
+    p.push(...this.pxRect(17, 4, 2, 2, '#222'));      // eye
+    p.push(...this.pxRect(18, 7, 1, 1, '#111'));      // mouth
+    p.push(...this.pxRect(12, 6, 2, 2, '#8B6633'));   // beard
+    // Shoulder armor
+    p.push(...this.pxRect(8, 8, 5, 4, robeDk));
+    p.push(...this.pxRect(9, 8, 3, 2, robe));
+    // Robed torso (profile)
+    p.push(...this.pxRect(10, 8, 9, 14, robe));
+    p.push(...this.pxRect(12, 9, 6, 12, robeLt));
+    // Back arm
+    p.push(...this.pxRect(7, 10, 3, 8, robeDk));
+    p.push(...this.pxRect(7, 18, 2, 2, skin));
+    // Front arm with sword
+    p.push(...this.pxRect(19, 10, 3, 6, robe));
+    p.push(...this.pxRect(22, 12, 2, 2, skin));      // hand
+    // Sword extending right
+    p.push(...this.pxRect(24, 11, 2, 2, '#AA8833')); // hilt
+    p.push(...this.pxRect(26, 8, 2, 5, '#CCCCDD'));   // blade
+    p.push(...this.pxRect(27, 8, 1, 5, '#AAAACC'));
     // Belt/sash
-    p.push(...this.pxRect(8, 22, 16, 2, '#CCAA33'));   // gold sash
-    // Lower robe (skirt)
-    p.push(...this.pxRect(6, 24, 20, 6, robeDk));
-    p.push(...this.pxRect(8, 24, 6, 6, robe));
-    p.push(...this.pxRect(18, 24, 6, 6, robe));
+    p.push(...this.pxRect(10, 22, 9, 2, '#CCAA33'));
+    // Lower robe
+    p.push(...this.pxRect(9, 24, 10, 6, robeDk));
+    p.push(...this.pxRect(11, 24, 6, 6, robe));
     // Legs
-    p.push(...this.pxRect(9, 30, 5, 5, '#333'));
-    p.push(...this.pxRect(18, 30, 5, 5, '#333'));
+    p.push(...this.pxRect(9, 30, 4, 5, '#333'));
+    p.push(...this.pxRect(15, 30, 4, 5, '#333'));
     // Boots
-    p.push(...this.pxRect(8, 35, 6, 3, '#222'));
-    p.push(...this.pxRect(17, 35, 6, 3, '#222'));
-    // Sword held forward
-    p.push(...this.pxRect(28, 10, 2, 2, '#AA8833'));   // hilt
-    p.push(...this.pxRect(29, 5, 2, 5, '#CCCCDD'));    // blade up
-    p.push(...this.pxRect(30, 5, 1, 5, '#AAAACC'));    // blade shadow
+    p.push(...this.pxRect(8, 35, 5, 3, '#222'));
+    p.push(...this.pxRect(15, 35, 5, 3, '#222'));
     return p;
   }
 
-  // Wall Crawler Ninja — green bodysuit ninja (arcade, agile enemy)
+  // Wall Crawler Ninja — green bodysuit (side profile)
   jumperPixels() {
     const p = [];
-    const suit = '#226644';       // green bodysuit
+    const suit = '#226644';
     const suitLt = '#338855';
     const suitDk = '#115533';
-    const gloves = '#CCAA22';     // yellow gloves/boots
-    // Head (full mask)
-    p.push(...this.pxRect(8, 0, 10, 3, suit));
-    p.push(...this.pxRect(8, 3, 10, 4, suitLt));
-    p.push(...this.pxRect(10, 4, 6, 2, '#FFFFFF'));   // white eye band
-    p.push(...this.pxRect(11, 4, 2, 2, '#111'));      // eye L
-    p.push(...this.pxRect(15, 4, 2, 2, '#111'));      // eye R
-    // Torso (slim, agile)
-    p.push(...this.pxRect(7, 7, 12, 8, suit));
-    p.push(...this.pxRect(9, 8, 8, 6, suitLt));
-    p.push(...this.pxRect(12, 8, 2, 6, suitDk));     // center line
-    // Arms (spread for jump/crawl)
-    p.push(...this.pxRect(3, 8, 4, 6, suit));
-    p.push(...this.pxRect(19, 8, 4, 6, suit));
-    p.push(...this.pxRect(3, 14, 3, 2, gloves));     // yellow gloves
-    p.push(...this.pxRect(20, 14, 3, 2, gloves));
+    const gloves = '#CCAA22';
+    // Head (masked profile)
+    p.push(...this.pxRect(10, 0, 7, 3, suit));
+    p.push(...this.pxRect(10, 3, 7, 4, suitLt));
+    p.push(...this.pxRect(15, 4, 3, 2, '#FFFFFF'));   // eye band
+    p.push(...this.pxRect(16, 4, 2, 2, '#111'));      // eye
+    // Torso (slim, profile)
+    p.push(...this.pxRect(9, 7, 7, 8, suit));
+    p.push(...this.pxRect(10, 8, 5, 6, suitLt));
+    // Back arm
+    p.push(...this.pxRect(7, 8, 3, 5, suitDk));
+    p.push(...this.pxRect(6, 13, 2, 2, gloves));
+    // Front arm (reaching forward)
+    p.push(...this.pxRect(16, 8, 3, 5, suit));
+    p.push(...this.pxRect(19, 10, 2, 2, gloves));
     // Belt
-    p.push(...this.pxRect(7, 15, 12, 1, gloves));
-    // Legs
+    p.push(...this.pxRect(9, 15, 7, 1, gloves));
+    // Legs (crouched/jumping)
     p.push(...this.pxRect(8, 16, 4, 10, suit));
-    p.push(...this.pxRect(14, 16, 4, 10, suit));
+    p.push(...this.pxRect(13, 16, 4, 10, suit));
     p.push(...this.pxRect(9, 17, 2, 8, suitLt));
-    p.push(...this.pxRect(15, 17, 2, 8, suitLt));
+    p.push(...this.pxRect(14, 17, 2, 8, suitLt));
     // Yellow boots
     p.push(...this.pxRect(7, 26, 5, 3, gloves));
-    p.push(...this.pxRect(14, 26, 5, 3, gloves));
+    p.push(...this.pxRect(13, 26, 5, 3, gloves));
     return p;
   }
 
-  // Orange Swordsman Guard — heavier variant near hostages (arcade)
+  // Orange Swordsman Guard (side profile facing right)
   bossMinionPixels() {
     const p = [];
-    const robe = '#CC7722';       // orange robe (arcade variant)
+    const robe = '#CC7722';
     const robeLt = '#DD9944';
     const robeDk = '#AA5500';
     const skin = '#D4A070';
     const armor = '#888888';
-    // Head (armored helmet)
-    p.push(...this.pxRect(7, 0, 16, 4, armor));
-    p.push(...this.pxRect(9, 0, 12, 2, '#999'));
-    // Face
-    p.push(...this.pxRect(9, 4, 12, 4, skin));
-    p.push(...this.pxRect(11, 5, 2, 2, '#222'));     // eyes
-    p.push(...this.pxRect(17, 5, 2, 2, '#222'));
-    p.push(...this.pxRect(13, 6, 4, 1, '#111'));     // stern face
+    // Helmet (profile)
+    p.push(...this.pxRect(10, 0, 10, 4, armor));
+    p.push(...this.pxRect(11, 0, 8, 2, '#999'));
+    // Face (profile)
+    p.push(...this.pxRect(13, 4, 6, 4, skin));
+    p.push(...this.pxRect(17, 5, 2, 2, '#222'));      // eye
+    p.push(...this.pxRect(18, 7, 1, 1, '#111'));
     // Shoulder armor
-    p.push(...this.pxRect(2, 8, 6, 5, armor));
-    p.push(...this.pxRect(22, 8, 6, 5, armor));
-    p.push(...this.pxRect(3, 8, 4, 3, '#999'));
-    p.push(...this.pxRect(23, 8, 4, 3, '#999'));
-    // Robed torso
-    p.push(...this.pxRect(7, 8, 16, 12, robe));
-    p.push(...this.pxRect(9, 9, 12, 10, robeLt));
-    // Arms
-    p.push(...this.pxRect(2, 13, 5, 7, robe));
-    p.push(...this.pxRect(23, 13, 5, 7, robe));
-    p.push(...this.pxRect(2, 20, 4, 2, skin));
-    p.push(...this.pxRect(24, 20, 4, 2, skin));
+    p.push(...this.pxRect(7, 8, 5, 5, armor));
+    p.push(...this.pxRect(8, 8, 3, 3, '#999'));
+    // Robed torso (profile)
+    p.push(...this.pxRect(10, 8, 9, 12, robe));
+    p.push(...this.pxRect(12, 9, 6, 10, robeLt));
+    // Back arm
+    p.push(...this.pxRect(7, 13, 4, 7, robe));
+    p.push(...this.pxRect(7, 20, 3, 2, skin));
+    // Front arm + sword
+    p.push(...this.pxRect(19, 10, 3, 6, robe));
+    p.push(...this.pxRect(22, 12, 2, 2, skin));
+    p.push(...this.pxRect(24, 11, 2, 2, '#AA8833'));
+    p.push(...this.pxRect(25, 5, 2, 6, '#CCCCDD'));
     // Belt
-    p.push(...this.pxRect(7, 20, 16, 2, '#CCAA33'));
+    p.push(...this.pxRect(10, 20, 9, 2, '#CCAA33'));
     // Lower robe
-    p.push(...this.pxRect(6, 22, 18, 6, robeDk));
-    p.push(...this.pxRect(8, 22, 5, 6, robe));
-    p.push(...this.pxRect(17, 22, 5, 6, robe));
+    p.push(...this.pxRect(9, 22, 10, 6, robeDk));
+    p.push(...this.pxRect(11, 22, 6, 6, robe));
     // Legs
-    p.push(...this.pxRect(8, 28, 5, 6, '#333'));
-    p.push(...this.pxRect(17, 28, 5, 6, '#333'));
+    p.push(...this.pxRect(9, 28, 4, 6, '#333'));
+    p.push(...this.pxRect(15, 28, 4, 6, '#333'));
     // Boots
-    p.push(...this.pxRect(7, 34, 6, 3, '#222'));
-    p.push(...this.pxRect(16, 34, 6, 3, '#222'));
-    // Sword
-    p.push(...this.pxRect(27, 10, 2, 2, '#AA8833'));
-    p.push(...this.pxRect(28, 4, 2, 6, '#CCCCDD'));
+    p.push(...this.pxRect(8, 34, 5, 3, '#222'));
+    p.push(...this.pxRect(15, 34, 5, 3, '#222'));
     return p;
   }
 
-  // Masked Ninja Boss — large armored ninja boss (arcade mid-boss)
+  // Masked Ninja Boss (side profile facing right)
   miniBossPixels() {
     const p = [];
-    const armor = '#4444AA';      // blue armor
+    const armor = '#4444AA';
     const armorLt = '#5555CC';
     const armorDk = '#333388';
     const skin = '#D4A070';
-    const mask = '#222222';
     const gold = '#FFD700';
-    // Helmet with crest
-    p.push(...this.pxRect(14, 0, 20, 3, gold));       // gold crest
-    p.push(...this.pxRect(16, 0, 16, 2, '#FFE84D'));
-    p.push(...this.pxRect(10, 3, 28, 6, armor));      // helmet
-    p.push(...this.pxRect(12, 4, 24, 4, armorLt));
-    // Face (masked)
-    p.push(...this.pxRect(14, 9, 20, 6, mask));
-    p.push(...this.pxRect(18, 10, 4, 3, '#FF2222'));   // glowing red eyes
-    p.push(...this.pxRect(26, 10, 4, 3, '#FF2222'));
-    p.push(...this.pxRect(20, 13, 8, 2, '#333'));      // mouth guard
-    // Massive armored torso
-    p.push(...this.pxRect(8, 15, 32, 18, armor));
-    p.push(...this.pxRect(12, 16, 24, 16, armorLt));
+    // Helmet with crest (profile)
+    p.push(...this.pxRect(18, 0, 14, 3, gold));
+    p.push(...this.pxRect(20, 0, 10, 2, '#FFE84D'));
+    p.push(...this.pxRect(14, 3, 20, 6, armor));
+    p.push(...this.pxRect(16, 4, 16, 4, armorLt));
+    // Masked face (profile)
+    p.push(...this.pxRect(18, 9, 14, 6, '#222'));
+    p.push(...this.pxRect(28, 10, 4, 3, '#FF2222'));   // red eye
+    p.push(...this.pxRect(24, 13, 6, 2, '#333'));
+    // Shoulder armor
+    p.push(...this.pxRect(8, 15, 8, 8, armorDk));
+    p.push(...this.pxRect(10, 16, 5, 6, armor));
+    // Armored torso (profile)
+    p.push(...this.pxRect(14, 15, 18, 18, armor));
+    p.push(...this.pxRect(16, 16, 14, 16, armorLt));
     // Chest emblem
-    p.push(...this.pxRect(20, 18, 8, 2, gold));
-    p.push(...this.pxRect(22, 20, 4, 4, gold));
-    // Shoulder armor (massive)
-    p.push(...this.pxRect(2, 15, 6, 8, armorDk));
-    p.push(...this.pxRect(40, 15, 6, 8, armorDk));
-    p.push(...this.pxRect(3, 16, 4, 6, armor));
-    p.push(...this.pxRect(41, 16, 4, 6, armor));
-    // Arms
-    p.push(...this.pxRect(2, 23, 6, 8, armor));
-    p.push(...this.pxRect(40, 23, 6, 8, armor));
-    p.push(...this.pxRect(1, 31, 6, 3, skin));        // fists
-    p.push(...this.pxRect(41, 31, 6, 3, skin));
+    p.push(...this.pxRect(22, 18, 6, 2, gold));
+    p.push(...this.pxRect(24, 20, 3, 3, gold));
+    // Back arm
+    p.push(...this.pxRect(8, 23, 6, 8, armor));
+    p.push(...this.pxRect(6, 31, 5, 3, skin));
+    // Front arm
+    p.push(...this.pxRect(32, 18, 6, 8, armor));
+    p.push(...this.pxRect(36, 26, 5, 3, skin));
     // Belt
-    p.push(...this.pxRect(8, 33, 32, 3, gold));
+    p.push(...this.pxRect(14, 33, 18, 3, gold));
     // Armored skirt
-    p.push(...this.pxRect(6, 36, 36, 5, armorDk));
-    p.push(...this.pxRect(8, 36, 8, 5, armor));
-    p.push(...this.pxRect(20, 36, 8, 5, armor));
-    p.push(...this.pxRect(32, 36, 6, 5, armor));
+    p.push(...this.pxRect(12, 36, 20, 5, armorDk));
+    p.push(...this.pxRect(14, 36, 6, 5, armor));
+    p.push(...this.pxRect(24, 36, 6, 5, armor));
     // Legs
-    p.push(...this.pxRect(12, 41, 8, 10, armorDk));
-    p.push(...this.pxRect(28, 41, 8, 10, armorDk));
-    p.push(...this.pxRect(14, 42, 4, 8, armor));
-    p.push(...this.pxRect(30, 42, 4, 8, armor));
+    p.push(...this.pxRect(14, 41, 7, 10, armorDk));
+    p.push(...this.pxRect(25, 41, 7, 10, armorDk));
+    p.push(...this.pxRect(16, 42, 3, 8, armor));
+    p.push(...this.pxRect(27, 42, 3, 8, armor));
     // Boots
-    p.push(...this.pxRect(10, 51, 10, 4, '#333'));
-    p.push(...this.pxRect(28, 51, 10, 4, '#333'));
+    p.push(...this.pxRect(12, 51, 9, 4, '#333'));
+    p.push(...this.pxRect(24, 51, 9, 4, '#333'));
     return p;
   }
 
-  // Nakahara — Zeed Leader / Final Boss (arcade, masked ninja master)
+  // Nakahara — Zeed Leader / Final Boss (side profile)
   finalBossPixels() {
     const p = [];
-    const robe = '#880000';       // deep red robe
+    const robe = '#880000';
     const robeLt = '#AA2222';
     const robeDk = '#660000';
     const armor = '#888888';
     const armorLt = '#AAAAAA';
-    const skin = '#D4A070';
     const gold = '#FFD700';
-    // Elaborate masked helmet
-    p.push(...this.pxRect(16, 0, 24, 3, gold));       // crown crest
-    p.push(...this.pxRect(20, 0, 16, 2, '#FFE84D'));
-    p.push(...this.pxRect(12, 3, 32, 6, '#222'));      // dark helmet
-    p.push(...this.pxRect(14, 4, 28, 4, '#333'));
-    // Masked face (white demon mask)
-    p.push(...this.pxRect(16, 9, 24, 7, '#EEEEEE'));   // white mask
-    p.push(...this.pxRect(18, 9, 20, 5, '#FFFFFF'));
-    p.push(...this.pxRect(20, 10, 4, 3, '#FF0000'));   // angry red eyes
-    p.push(...this.pxRect(32, 10, 4, 3, '#FF0000'));
-    p.push(...this.pxRect(24, 13, 8, 2, '#333'));      // mask mouth slit
-    // Cape (flowing)
-    p.push(...this.pxRect(4, 16, 8, 30, robe));
-    p.push(...this.pxRect(44, 16, 8, 30, robe));
-    p.push(...this.pxRect(6, 18, 4, 26, robeLt));
-    p.push(...this.pxRect(46, 18, 4, 26, robeLt));
+    // Helmet (profile)
+    p.push(...this.pxRect(20, 0, 16, 3, gold));
+    p.push(...this.pxRect(22, 0, 12, 2, '#FFE84D'));
+    p.push(...this.pxRect(16, 3, 22, 6, '#222'));
+    p.push(...this.pxRect(18, 4, 18, 4, '#333'));
+    // White demon mask (profile)
+    p.push(...this.pxRect(20, 9, 16, 7, '#EEEEEE'));
+    p.push(...this.pxRect(22, 9, 12, 5, '#FFFFFF'));
+    p.push(...this.pxRect(30, 10, 4, 3, '#FF0000'));   // red eye
+    p.push(...this.pxRect(26, 13, 6, 2, '#333'));
+    // Cape (flowing behind — profile shows one side)
+    p.push(...this.pxRect(6, 16, 10, 30, robe));
+    p.push(...this.pxRect(8, 18, 6, 26, robeLt));
     // Shoulder armor
-    p.push(...this.pxRect(6, 16, 12, 6, armor));
-    p.push(...this.pxRect(38, 16, 12, 6, armor));
-    p.push(...this.pxRect(8, 17, 8, 4, armorLt));
-    p.push(...this.pxRect(40, 17, 8, 4, armorLt));
-    // Chest (ornate dark robe with armor)
-    p.push(...this.pxRect(14, 16, 28, 16, robe));
-    p.push(...this.pxRect(18, 18, 20, 12, robeLt));
-    // Zeed emblem on chest
-    p.push(...this.pxRect(22, 20, 12, 2, gold));
-    p.push(...this.pxRect(24, 22, 8, 2, gold));
-    p.push(...this.pxRect(26, 24, 4, 3, gold));
+    p.push(...this.pxRect(10, 16, 10, 6, armor));
+    p.push(...this.pxRect(12, 17, 6, 4, armorLt));
+    // Robed torso (profile)
+    p.push(...this.pxRect(18, 16, 18, 16, robe));
+    p.push(...this.pxRect(20, 18, 14, 12, robeLt));
+    // Zeed emblem
+    p.push(...this.pxRect(26, 20, 8, 2, gold));
+    p.push(...this.pxRect(28, 22, 4, 3, gold));
+    // Back arm + cape
+    p.push(...this.pxRect(14, 20, 4, 12, robeDk));
+    // Front arm with katana
+    p.push(...this.pxRect(36, 18, 5, 8, robe));
+    p.push(...this.pxRect(40, 22, 3, 2, '#D4A070'));  // hand
+    p.push(...this.pxRect(43, 16, 3, 3, gold));       // tsuba
+    p.push(...this.pxRect(44, 4, 2, 12, '#DDEEFF'));   // blade up
+    p.push(...this.pxRect(45, 4, 1, 12, '#BBCCDD'));
     // Belt
-    p.push(...this.pxRect(14, 32, 28, 3, '#222'));
-    p.push(...this.pxRect(24, 32, 8, 3, gold));       // gold buckle
+    p.push(...this.pxRect(18, 32, 18, 3, '#222'));
+    p.push(...this.pxRect(26, 32, 6, 3, gold));
     // Robe skirt
-    p.push(...this.pxRect(12, 35, 32, 6, robeDk));
-    p.push(...this.pxRect(14, 35, 6, 6, robe));
-    p.push(...this.pxRect(22, 35, 12, 6, robe));
-    p.push(...this.pxRect(36, 35, 6, 6, robe));
+    p.push(...this.pxRect(16, 35, 20, 6, robeDk));
+    p.push(...this.pxRect(18, 35, 6, 6, robe));
+    p.push(...this.pxRect(28, 35, 6, 6, robe));
     // Legs
-    p.push(...this.pxRect(16, 41, 8, 12, '#222'));
-    p.push(...this.pxRect(32, 41, 8, 12, '#222'));
-    p.push(...this.pxRect(18, 42, 4, 10, '#333'));
-    p.push(...this.pxRect(34, 42, 4, 10, '#333'));
+    p.push(...this.pxRect(18, 41, 7, 12, '#222'));
+    p.push(...this.pxRect(29, 41, 7, 12, '#222'));
+    p.push(...this.pxRect(20, 42, 3, 10, '#333'));
+    p.push(...this.pxRect(31, 42, 3, 10, '#333'));
     // Boots
-    p.push(...this.pxRect(14, 53, 10, 4, '#111'));
-    p.push(...this.pxRect(32, 53, 10, 4, '#111'));
-    // Katana (massive, glowing blade)
-    p.push(...this.pxRect(50, 8, 3, 3, gold));        // tsuba
-    p.push(...this.pxRect(51, 11, 2, 24, '#DDEEFF')); // blade (bluish steel)
-    p.push(...this.pxRect(52, 11, 1, 24, '#BBCCDD')); // blade shadow
+    p.push(...this.pxRect(16, 53, 9, 4, '#111'));
+    p.push(...this.pxRect(28, 53, 9, 4, '#111'));
     return p;
   }
 
@@ -1529,12 +1505,12 @@ class GameScene extends Phaser.Scene {
     this.enemies.getChildren().forEach(enemy => {
       if (!enemy.active) return;
 
-      // Face player
+      // Face player (sprites drawn facing right)
       if (enemy.x > this.player.x) {
-        enemy.setFlipX(false);
+        enemy.setFlipX(true);   // enemy is right of player, moving left — flip to face left
         enemy.body.setVelocityX(-enemy.moveSpeed);
       } else {
-        enemy.setFlipX(true);
+        enemy.setFlipX(false);  // enemy is left of player, moving right — face right (default)
         enemy.body.setVelocityX(enemy.moveSpeed);
       }
 
